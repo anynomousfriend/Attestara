@@ -58,6 +58,8 @@ Institution Wallet
 > **http://localhost:3000** — Marketing landing page with animated architecture flow, privacy model, adversarial scenario showcase, and live demo preview.
 
 ### Compliance Dashboard
+![Attestara Compliance Dashboard](packages/landing/public/screenshot-dashboard.png)
+
 > **http://localhost:3001** — Full compliance dashboard with TransactionStepper, AML Logs, Vault Stats, Scenarios tab, and Gas Analysis.
 
 ---
