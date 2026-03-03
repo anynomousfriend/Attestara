@@ -1,0 +1,26 @@
+{
+  "name": "@zk-compliance/contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts: DIDRegistry, ComplianceAttestationVerifier, PermissionedVault",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "fork:setup": "hardhat run scripts/setupFork.ts --network tenderly",
+    "deploy": "hardhat run scripts/deploy.ts --network tenderly",
+    "deploy:local": "hardhat run scripts/deploy.ts --network hardhat"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.5",
+    "@types/node": "^20.11.0",
+    "hardhat": "^2.19.4",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "dotenv": "^16.4.1"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.1",
+    "ethers": "^6.10.0",
+    "axios": "^1.6.7"
+  }
+}
