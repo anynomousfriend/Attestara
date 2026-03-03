@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 0%; /* Black */
+    --foreground: 210 20% 95%; /* off-white */
+    
+    --card: 0 0% 4%; /* Very dark grey for cards */
+    --card-foreground: 210 20% 95%;
+    
+    --popover: 0 0% 4%;
+    --popover-foreground: 210 20% 95%;
+    
+    --primary: 41 90% 66%; /* #f5c45e Yellow/Golden */
+    --primary-foreground: 0 0% 0%; /* Black text on golden */
+    
+    --secondary: 25 78% 59%; /* #e78b48 Orange */
+    --secondary-foreground: 210 20% 95%;
+    
+    --muted: 0 0% 12%; /* Dark grey */
+    --muted-foreground: 0 0% 65%;
+    
+    --accent: 41 90% 66%;
+    --accent-foreground: 0 0% 0%;
+    
+    --destructive: 5 65% 45%; /* #be3d2a Red */
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 0 0% 15%; /* Grey border */
+    --input: 0 0% 10%;
+    --ring: 41 90% 66%;
+    
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * { border-color: hsl(var(--border)); }
+  html { scroll-behavior: smooth; }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+.input-focus:focus-within {
+  box-shadow: 0 0 0 2px hsl(var(--ring));
+  border-color: hsl(var(--ring)) !important;
+}
+
+.pill { border-radius: 0.5rem; }
+
+/* ── Global scrollbar ───────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: hsla(41, 90%, 66%, 0.18);
+  border-radius: 99px;
+  transition: background 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsla(41, 90%, 66%, 0.45);
+  box-shadow: 0 0 6px hsla(41, 90%, 66%, 0.3);
+}
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* ── Styled scroll — scoped to form panels ──────────────────────────────────── */
+.styled-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: hsla(41, 90%, 66%, 0.18) transparent;
+}
+.styled-scroll::-webkit-scrollbar { width: 3px; }
+.styled-scroll::-webkit-scrollbar-track { background: transparent; margin-block: 8px; }
+.styled-scroll::-webkit-scrollbar-thumb {
+  background: hsla(41, 90%, 66%, 0.2);
+  border-radius: 99px;
+}
+.styled-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsla(41, 90%, 66%, 0.5);
+}
+
+.nav-item-active {
+  background: hsla(41, 90%, 66%, 0.1);
+  border-left: 2px solid hsl(var(--primary));
+  padding-left: calc(0.75rem - 2px);
+}
+
+.stat-card { transition: transform 0.2s ease, border-color 0.2s ease; }
+.stat-card:hover { transform: translateY(-2px); border-color: hsla(41, 90%, 66%, 0.5) !important; }
+
+.tr-hover { transition: background 0.15s ease; }
+.tr-hover:hover { background: hsla(210, 20%, 95%, 0.05); }
