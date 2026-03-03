@@ -66,8 +66,8 @@ export function Hero() {
       </p>
 
       <div className="hero-ctas" id="hero-ctas">
-        <button className="btn-primary interactive">Launch App →</button>
-        <button className="btn-secondary interactive">Read Docs</button>
+        <a href="http://localhost:3001" className="btn-primary interactive" style={{ textDecoration: "none" }}>Launch App →</a>
+        <a href="https://github.com" className="btn-secondary interactive" style={{ textDecoration: "none" }}>Read Docs</a>
       </div>
 
       <div className="scroll-ind" id="scroll-ind">

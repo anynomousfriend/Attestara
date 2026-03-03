@@ -17,7 +17,7 @@ export function Navbar() {
   return (
     <nav className="navbar" ref={ref}>
       <div className="nav-logo">Attestara</div>
-      <button className="btn-primary btn-nav interactive">Launch App</button>
+      <a href="http://localhost:3001" className="btn-primary btn-nav interactive" style={{ textDecoration: "none" }}>Launch App</a>
     </nav>
   );
 }

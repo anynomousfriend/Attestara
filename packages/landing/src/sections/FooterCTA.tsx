@@ -29,9 +29,9 @@ export function FooterCTA() {
       <p className="final-sub">
         Deploy Attestara as your compliance middleware. No protocol changes. No PII exposure. No compromises.
       </p>
-      <button className="btn-primary interactive" style={{ marginTop: 48 }}>
+      <a href="http://localhost:3001" className="btn-primary interactive" style={{ marginTop: 48, textDecoration: "none" }}>
         Launch App →
-      </button>
+      </a>
 
       <div className="footer-bottom">
         <div className="nav-logo" style={{ fontSize: 18 }}>Attestara</div>

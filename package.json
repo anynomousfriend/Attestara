@@ -9,7 +9,7 @@
   "scripts": {
     "demo": "npx ts-node scripts/demo.ts",
     "build": "npm run build --workspaces --if-present",
-    "dev": "concurrently \"npm run dev -w packages/mock-aml\" \"npm run dev -w packages/cre\"",
+    "dev": "concurrently \"npm run dev -w packages/mock-aml\" \"npm run dev -w packages/cre\" \"npm run dev -w packages/frontend\" \"npm run dev -w packages/landing\"",
     "test": "npm run test --workspaces --if-present",
     "fork:setup": "npm run fork:setup -w packages/contracts",
     "deploy": "npm run deploy -w packages/contracts",
