@@ -53,7 +53,7 @@ export class TxForwarder {
    * Uses the institution's own signer (passed in) — CRE never holds user funds.
    */
   async executeDeposit(
-    institutionSigner: ethers.Wallet,
+    institutionSigner: ethers.Wallet | ethers.HDNodeWallet,
     amount:            bigint,
     signedAttestation: SignedAttestation
   ): Promise<DepositResult> {
