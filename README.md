@@ -55,12 +55,12 @@ Institution Wallet
 ### Landing Page
 ![Attestara Landing Page](packages/frontend/public/Landing-page.png)
 
-> **http://localhost:3000** — Marketing landing page with animated architecture flow, privacy model, adversarial scenario showcase, and live demo preview.
+> **https://attestara-frontend.vercel.app/** — Marketing landing page with animated architecture flow, privacy model, adversarial scenario showcase, and live demo preview.
 
 ### Compliance Dashboard
 ![Attestara Compliance Dashboard](packages/frontend/public/Dashboard.png)
 
-> **http://localhost:3000** — Full compliance dashboard with TransactionStepper, AML Logs, Vault Stats, Scenarios tab, and Gas Analysis.
+> **https://attestara-frontend.vercel.app/app** — Full compliance dashboard with TransactionStepper, AML Logs, Vault Stats, Scenarios tab, and Gas Analysis.
 
 ---
 
