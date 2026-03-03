@@ -1,0 +1,25 @@
+{
+  "name": "@zk-compliance/mock-aml",
+  "version": "1.0.0",
+  "description": "Mock Chainalysis-style AML API server for local development",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.4.1",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/morgan": "^1.9.9",
+    "@types/uuid": "^9.0.7",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2"
+  }
+}
