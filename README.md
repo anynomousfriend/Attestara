@@ -50,6 +50,40 @@ Institution Wallet
 
 ---
 
+## Glossary
+
+New to institutional DeFi compliance? Here's what every term in this project means.
+
+| Term | What it means |
+|---|---|
+| **CRE** | *Compliance & Routing Engine* — the off-chain middleware service at the heart of Attestara. It runs AML checks, signs attestations, and relays transactions. Think of it as a compliance firewall between an institution and the vault. |
+| **AML** | *Anti-Money Laundering* — the regulatory process of screening wallets and transactions to detect illegal activity. In Attestara, AML screening runs inside the CRE using Chainalysis KYT or the built-in mock server. |
+| **KYT** | *Know Your Transaction* — Chainalysis's real-time transaction risk scoring API. It analyses counterparty exposure, mixer usage, OFAC sanctions, and more. Attestara abstracts KYT behind a pluggable adapter. |
+| **OFAC** | *Office of Foreign Assets Control* — the US Treasury body that maintains sanctions lists. Wallets on OFAC lists are flagged `BLOCKED` by the AML screener. |
+| **DID** | *Decentralized Identifier* — a globally unique identifier (e.g. `did:ethr:0xABC...`) anchored to a blockchain address instead of a central authority. In Attestara, every institution must register a DID in the on-chain `DIDRegistry` before they can deposit. This proves they have gone through onboarding. |
+| **DID Registry** | The `DIDRegistry.sol` smart contract that maps Ethereum addresses to DID documents. A DID document contains a document hash, service endpoint, and timestamps. The vault checks this registry before accepting any deposit. |
+| **EIP-712** | An Ethereum standard for hashing and signing structured data (not raw bytes). Attestara uses EIP-712 to sign `ComplianceAttestation` structs — this means wallets show a human-readable signing prompt instead of a raw hex blob, and the signature is domain-separated to prevent cross-contract replay. |
+| **Attestation** | A signed statement issued by the CRE that says "I checked this address against AML rules and it passed." It contains the subject address, an AML report hash, an expiry timestamp, and a one-time nonce. The vault verifies this on-chain before accepting a deposit. |
+| **Nonce** | A one-time random number embedded in each attestation. Once an attestation is used in a deposit, its nonce is permanently recorded as spent in the `ComplianceAttestationVerifier` contract. This prevents the same attestation being replayed to make a second deposit. |
+| **TTL** | *Time To Live* — the validity window of a signed attestation, defaulting to 15 minutes. After expiry, the vault rejects the deposit with `Attestation__Expired`. This limits the window in which a compromised attestation could be misused. |
+| **Tenderly** | A blockchain development platform used by Attestara for four things: (1) hosting a fork of Ethereum mainnet as a Virtual TestNet, (2) simulating transactions before execution, (3) providing execution traces for gas analysis, and (4) firing webhooks when specific contract calls are detected. |
+| **Virtual TestNet / Fork** | A sandboxed copy of Ethereum mainnet state hosted by Tenderly. It behaves exactly like mainnet (same contract addresses, same token balances) but transactions are isolated and free. Attestara deploys to a fork so you can run the full stack without spending real ETH or USDC. |
+| **Simulation** | Tenderly's ability to execute a transaction against fork state without mining it. Attestara uses this as a pre-flight check — if the deposit would revert, the user sees the decoded reason before any gas is spent. |
+| **ERC-20** | The standard interface for fungible tokens on Ethereum. Attestara uses USDC (a stablecoin pegged to $1) as the deposit asset. USDC implements ERC-20, so the vault calls `approve` + `transferFrom` to pull funds. |
+| **ERC-4626** | A standard for tokenized vaults (yield-bearing deposit contracts). `PermissionedVault.sol` follows the spirit of ERC-4626 but adds a mandatory compliance gate before each deposit. |
+| **ECDSA** | *Elliptic Curve Digital Signature Algorithm* — the cryptographic primitive Ethereum uses for transaction signing. The CRE's EIP-712 attestation signature is an ECDSA signature recovered by the `ComplianceAttestationVerifier` contract to prove the CRE authorised the deposit. |
+| **Relay / Relayer** | A pattern where a backend service (the CRE) submits an on-chain transaction on behalf of a user, so the user doesn't need ETH for gas. In Attestara's demo mode, the CRE relays the vault deposit using the institution's private key passed in the request body. |
+| **Revert** | When a smart contract transaction fails and all state changes are rolled back. Attestara's contracts use custom errors (`Vault__Paused`, `Attestation__NonceUsed`, etc.) that are decoded by the simulation service into human-readable messages. |
+| **State Manipulation** | Tenderly's RPC extensions (`tenderly_setBalance`, `tenderly_setStorageAt`, `evm_increaseTime`) that let you directly modify fork state — useful for scripting test scenarios like advancing time past attestation expiry or funding a wallet with USDC without going through an exchange. |
+| **Tenderly Alerts / Webhooks** | Tenderly can watch for specific on-chain events (e.g. a call to `PermissionedVault.deposit()`) and fire an HTTP POST to a CRE endpoint in real time. Attestara uses this for Feature 3: revocation — the CRE re-screens an address the moment a deposit is detected and can burn the nonce before it settles. |
+| **Gas** | The unit of computational work in Ethereum. Every operation (storage write, signature verification, token transfer) costs gas, priced in gwei (1 gwei = 10⁻⁹ ETH). Attestara's gas dashboard decomposes a deposit's total gas into per-call-frame costs so you know exactly what each compliance check costs. |
+| **keccak256** | Ethereum's standard hash function (a variant of SHA-3). Attestara uses it to commit to AML reports on-chain: `amlReportHash = keccak256(reportJSON)`. The report itself stays off-chain; only the hash is stored in the attestation. |
+| **USDC** | *USD Coin* — a fiat-backed stablecoin issued by Circle, pegged 1:1 to the US dollar. It's the deposit asset in Attestara's vault because institutional DeFi typically operates in dollar-denominated stablecoins rather than volatile assets. |
+| **Aave Arc** | An institutional-grade, permissioned version of the Aave lending protocol. It uses a `PermissionManager` whitelist to gate deposits. Attestara's vault is inspired by Aave Arc but replaces the static whitelist with a dynamic, per-transaction CRE attestation. |
+| **EIP-712 Domain Separator** | A hash that uniquely identifies a specific contract deployment (by name, version, chain ID, and contract address). It prevents a signature intended for Attestara's verifier on mainnet being replayed against a different verifier on another chain or contract. |
+
+---
+
 ## Features
 
 ### Core Compliance Pipeline
