@@ -1,0 +1,17 @@
+{
+  "network": "tenderly",
+  "chainId": "1",
+  "deployedAt": "2026-03-02T14:11:08.966Z",
+  "deployer": "0xE8A457Ce1Ab8659a6410474dB5f1c6b070b98372",
+  "creSignerAddress": "0xE0A600Af3bd8A92eF9890859b092572aC7D512D1",
+  "contracts": {
+    "DIDRegistry": "0xccA4A4c8A03C7Dd156E5Fc2aeD4B9D911180797F",
+    "ComplianceAttestationVerifier": "0xC5fa799a9b4afcAC37cC4742E17e79f49FB97Fc8",
+    "PermissionedVault": "0x13F32ed38efC220eA31269F06793244081581427"
+  },
+  "external": {
+    "USDC": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "AaveArcPool": "0x37D7306019a38Af123e4b245Eb6C28AF552e0bB0",
+    "AaveArcPermMgr": "0xF4a1F5fEA79C3609514A417425971FadC10eCfBE"
+  }
+}

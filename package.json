@@ -1,0 +1,22 @@
+{
+  "name": "zk-compliance-proxy",
+  "version": "1.0.0",
+  "description": "Zero-Knowledge Institutional Compliance Proxy — CRE middleware for permissioned DeFi",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "demo": "npx ts-node scripts/demo.ts",
+    "build": "npm run build --workspaces --if-present",
+    "dev": "concurrently \"npm run dev -w packages/mock-aml\" \"npm run dev -w packages/cre\"",
+    "test": "npm run test --workspaces --if-present",
+    "fork:setup": "npm run fork:setup -w packages/contracts",
+    "deploy": "npm run deploy -w packages/contracts",
+    "integration:test": "npm run integration:test -w packages/cre"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.3"
+  }
+}

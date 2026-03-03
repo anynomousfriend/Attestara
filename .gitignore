@@ -1,0 +1,36 @@
+# ── Environment & secrets ──────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.key
+.cre-signer.key
+
+# ── Dependencies ───────────────────────────────────────────────────────────────
+node_modules/
+packages/*/node_modules/
+
+# ── Build output ───────────────────────────────────────────────────────────────
+dist/
+packages/*/dist/
+packages/frontend/dist/
+
+# ── Hardhat / Foundry ──────────────────────────────────────────────────────────
+packages/contracts/cache/
+packages/contracts/artifacts/
+packages/contracts/typechain-types/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+/tmp/*.log
+
+# ── OS / Editor ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
