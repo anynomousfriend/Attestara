@@ -1,7 +1,7 @@
 {
-  "name": "zk-compliance-proxy",
+  "name": "attestara",
   "version": "1.0.0",
-  "description": "Zero-Knowledge Institutional Compliance Proxy — CRE middleware for permissioned DeFi",
+  "description": "A CRE-orchestrated compliance layer for institutional DeFi — real-time AML screening, EIP-712 attestations, zero on-chain exposure.",
   "private": true,
   "workspaces": [
     "packages/*"

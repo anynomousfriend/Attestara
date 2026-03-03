@@ -1,4 +1,4 @@
-# ZK Institutional Compliance Proxy — Complete Demo Guide
+# Attestara — Complete Demo Guide
 
 > **Audience**: Business stakeholders, technical reviewers, and developers.  
 > **Purpose**: Walk through every step of the system — from entering an address in the UI to an on-chain settlement — explaining the business rationale and the exact technical mechanics underneath.
@@ -857,4 +857,4 @@ CHAINALYSIS_API_KEY=your_key_here
 
 ---
 
-*Generated: 2026-03-02 | ZK Institutional Compliance Proxy v1.0.0*
+*Generated: 2026-03-02 | Attestara v1.0.0*

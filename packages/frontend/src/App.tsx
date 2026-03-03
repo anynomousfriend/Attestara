@@ -72,8 +72,8 @@ export default function App() {
               <span className="text-[#f5c45e] text-sm font-bold select-none">Ψ</span>
             </div>
             <div className="hidden sm:block">
-              <p className="text-sm font-bold text-white leading-none">ZK Compliance</p>
-              <p className="text-[11px] text-muted-foreground tracking-[0.15em] uppercase leading-none mt-0.5">Proxy Engine</p>
+              <p className="text-sm font-bold text-white leading-none">Attestara</p>
+              <p className="text-[11px] text-muted-foreground tracking-[0.15em] uppercase leading-none mt-0.5">Compliance Layer</p>
             </div>
           </div>
 

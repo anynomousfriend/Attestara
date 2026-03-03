@@ -1,5 +1,5 @@
 {
-  "name": "@zk-compliance/mock-aml",
+  "name": "@attestara/mock-aml",
   "version": "1.0.0",
   "description": "Mock Chainalysis-style AML API server for local development",
   "main": "dist/index.js",

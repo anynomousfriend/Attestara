@@ -1,5 +1,5 @@
 {
-  "name": "@zk-compliance/cre",
+  "name": "@attestara/cre",
   "version": "1.0.0",
   "description": "Compliance & Routing Engine — off-chain enclave: DID resolution, AML screening, EIP-712 attestation signing, tx forwarding",
   "main": "dist/index.js",

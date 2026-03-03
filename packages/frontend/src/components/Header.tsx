@@ -15,7 +15,7 @@ export function Header({ health }: Props) {
             Ψ
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-white leading-none">ZK Compliance Proxy</h1>
+            <h1 className="text-lg font-semibold text-white leading-none">Attestara</h1>
             <p className="text-xs text-gray-400 mt-0.5">Institutional DeFi Compliance Engine</p>
           </div>
         </div>

@@ -1,10 +1,10 @@
 <div align="center">
 
-# Ψ ZK Compliance Proxy
+# Ψ Attestara
 
-**Institutional-grade AML/KYC middleware for permissioned DeFi**
+**A CRE-orchestrated compliance layer for institutional DeFi**
 
-*Zero on-chain PII · EIP-712 attestations · Tenderly-powered intelligence*
+*Real-time AML screening · EIP-712 attestations · Zero on-chain exposure*
 
 ---
 
@@ -19,7 +19,7 @@
 
 ## Overview
 
-The **ZK Compliance Proxy** is a production-pattern middleware stack that sits between institutions and a permissioned DeFi vault. It enforces real-time AML/KYC compliance without ever writing personal data on-chain — only cryptographic commitments.
+**Attestara** is a CRE-orchestrated compliance layer for institutional DeFi — a production-pattern middleware stack that sits between institutions and a permissioned vault. It enforces real-time AML/KYC compliance without ever writing personal data on-chain — only cryptographic commitments.
 
 ```
 Institution Wallet
@@ -211,8 +211,8 @@ packages/
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/your-org/zk-compliance-proxy.git
-cd zk-compliance-proxy
+git clone https://github.com/your-org/attestara.git
+cd attestara
 npm install
 ```
 

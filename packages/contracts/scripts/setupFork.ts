@@ -88,8 +88,8 @@ async function main() {
   const createRes = await axios.post(
     `https://api.tenderly.co/api/v1/account/${TENDERLY_ACCOUNT}/project/${TENDERLY_PROJECT}/vnets`,
     {
-      slug:          `zk-compliance-fork-${Date.now()}`,
-      display_name:  "ZK Compliance Proxy Fork",
+      slug:          `attestara-fork-${Date.now()}`,
+      display_name:  "Attestara Fork",
       fork_config: {
         network_id: 1,        // Ethereum mainnet
         block_number: "latest",
