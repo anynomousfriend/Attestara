@@ -14,11 +14,11 @@ import { cn } from "@/lib/utils";
 type StepId = 0 | 1 | 2 | 3 | 4;
 
 const STEPS = [
-  { id: 0, label: "Address",     short: "Input"    },
-  { id: 1, label: "AML Screen",  short: "Screen"   },
-  { id: 2, label: "Attestation", short: "Review"   },
-  { id: 3, label: "Deposit",     short: "Execute"  },
-  { id: 4, label: "Settled",     short: "Done"     },
+  { id: 0, label: "Address", short: "Input" },
+  { id: 1, label: "AML Screen", short: "Screen" },
+  { id: 2, label: "Attestation", short: "Review" },
+  { id: 3, label: "Deposit", short: "Execute" },
+  { id: 4, label: "Settled", short: "Done" },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -59,10 +59,10 @@ function ExpiryCountdown({ expiryTimestamp }: { expiryTimestamp: number }) {
     return () => clearInterval(t);
   }, [expiryTimestamp]);
 
-  const total   = 15 * 60; // 15 min TTL
-  const pct     = Math.max(0, Math.min(100, (remaining / total) * 100));
+  const total = 15 * 60; // 15 min TTL
+  const pct = Math.max(0, Math.min(100, (remaining / total) * 100));
   const expired = remaining <= 0;
-  const urgent  = remaining < 120;
+  const urgent = remaining < 120;
 
   const mm = Math.floor(Math.max(0, remaining) / 60);
   const ss = Math.max(0, remaining) % 60;
@@ -107,17 +107,17 @@ function StepProgress({ current, failed, snapshots, onChipClick }: {
     <div className="mb-6">
       <div className="flex items-center">
         {STEPS.map((step, i) => {
-          const done   = i < current;
+          const done = i < current;
           const active = i === current;
           const isLast = i === STEPS.length - 1;
 
           const chipColor = done
             ? "bg-[#f5c45e]/15 border-[#f5c45e]/40 text-[#f5c45e]"
             : active && failed
-            ? "bg-red-500/10 border-red-500/40 text-red-400"
-            : active
-            ? "bg-white/8 border-[#f5c45e]/50 text-white"
-            : "bg-white/3 border-white/10 text-white/25";
+              ? "bg-red-500/10 border-red-500/40 text-red-400"
+              : active
+                ? "bg-white/8 border-[#f5c45e]/50 text-white"
+                : "bg-white/3 border-white/10 text-white/25";
 
           return (
             <div key={step.id} className="flex items-center flex-1 last:flex-none relative">
@@ -199,20 +199,20 @@ function StepProgress({ current, failed, snapshots, onChipClick }: {
 // ── Slide variants ────────────────────────────────────────────────────────────
 const slideVariants = {
   enter: (dir: number) => ({ opacity: 0, x: dir * 40, scale: 0.98 }),
-  center: { opacity: 1, x: 0, scale: 1, transition: { duration: 0.32, ease: [0.32, 0.72, 0, 1] as [number,number,number,number] } },
+  center: { opacity: 1, x: 0, scale: 1, transition: { duration: 0.32, ease: [0.32, 0.72, 0, 1] as [number, number, number, number] } },
   exit: (dir: number) => ({ opacity: 0, x: dir * -30, scale: 0.97, transition: { duration: 0.2 } }),
 };
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export function TransactionStepper() {
   const queryClient = useQueryClient();
-  const [step, setStep]       = useState<StepId>(0);
-  const [dir, setDir]         = useState(1);
-  const [failed, setFailed]   = useState(false);
+  const [step, setStep] = useState<StepId>(0);
+  const [dir, setDir] = useState(1);
+  const [failed, setFailed] = useState(false);
   const [address, setAddress] = useState("");
-  const [amount, setAmount]   = useState("");
+  const [amount, setAmount] = useState("");
   const [privKey, setPrivKey] = useState("");
-  const [screenResult, setScreenResult]   = useState<ScreenResponse | undefined>();
+  const [screenResult, setScreenResult] = useState<ScreenResponse | undefined>();
   const [depositResult, setDepositResult] = useState<DepositResponse | undefined>();
   const [snapshots, setSnapshots] = useState<Record<number, string>>({});
 
@@ -235,8 +235,8 @@ export function TransactionStepper() {
 
   const screenMutation = useMutation({
     mutationFn: () => api.screen({ address, amount: Number(amount) }),
-    onMutate:   () => { setFailed(false); goTo(1); },
-    onSuccess:  (d) => {
+    onMutate: () => { setFailed(false); goTo(1); },
+    onSuccess: (d) => {
       setScreenResult(d);
       saveSnapshot(0, `${address.slice(0, 10)}… · ${Number(amount).toLocaleString()} USDC`);
       if (d.status === "CLEARED") {
@@ -254,8 +254,8 @@ export function TransactionStepper() {
 
   const depositMutation = useMutation({
     mutationFn: () => api.deposit({ address, amount: Number(amount), institutionPrivateKey: privKey }),
-    onMutate:   () => { setFailed(false); goTo(3); toast.loading("Simulating + submitting…", { id: "dep" }); },
-    onSuccess:  (d) => {
+    onMutate: () => { setFailed(false); goTo(3); toast.loading("Simulating + submitting…", { id: "dep" }); },
+    onSuccess: (d) => {
       setDepositResult(d);
       toast.dismiss("dep");
       if (d.status === "SETTLED") {
@@ -292,7 +292,7 @@ export function TransactionStepper() {
   const isExpired = expiryTs > 0 && Math.floor(Date.now() / 1000) > expiryTs;
 
   const HINTS = [
-    { label: "0x000… → BLOCKED",   addr: "0x0000000000000000000000000000000000000001" },
+    { label: "0x000… → BLOCKED", addr: "0x0000000000000000000000000000000000000001" },
     { label: "…dead… → HIGH RISK", addr: "" },
   ];
 
@@ -311,7 +311,7 @@ export function TransactionStepper() {
             </button>
           )}
         </div>
-        <StepProgress current={step} failed={failed} snapshots={snapshots} onChipClick={() => {}} />
+        <StepProgress current={step} failed={failed} snapshots={snapshots} onChipClick={() => { }} />
       </div>
 
       {/* Step content */}
@@ -432,16 +432,36 @@ export function TransactionStepper() {
                 <MonoField label="Amount" value={`${Number(amount).toLocaleString()} USDC`} />
               </div>
 
+              {/* AI Risk Analysis */}
+              {screenResult.aiNarrative && (
+                <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+                  <div className="rounded-2xl bg-purple-500/5 border border-purple-500/20 p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">🧠</span>
+                        <span className="text-[12px] uppercase tracking-widest text-purple-300 font-semibold">AI Risk Analysis</span>
+                      </div>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/10 border border-purple-500/20 text-purple-300">
+                        Gemini AI + Etherscan
+                      </span>
+                    </div>
+                    <p className="text-[13px] text-white/70 leading-relaxed">
+                      {screenResult.aiNarrative}
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+
               {/* EIP-712 */}
               <div>
                 <p className="text-[12px] uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
                   <span className="w-4 h-px bg-[#f5c45e]/40 inline-block" />EIP-712 Attestation
                 </p>
                 <div className="space-y-2.5 rounded-2xl bg-black/30 border border-[#f5c45e]/12 p-3">
-                  <MonoField label="Subject"         value={screenResult.attestation.subject}       copyable />
+                  <MonoField label="Subject" value={screenResult.attestation.subject} copyable />
                   <MonoField label="AML Report Hash" value={screenResult.attestation.amlReportHash} dim />
-                  <MonoField label="Nonce"           value={screenResult.attestation.nonce}         dim />
-                  <MonoField label="Signer"          value={screenResult.signer ?? screenResult.signerAddress ?? "—"} copyable />
+                  <MonoField label="Nonce" value={screenResult.attestation.nonce} dim />
+                  <MonoField label="Signer" value={screenResult.signer ?? screenResult.signerAddress ?? "—"} copyable />
                   <div>
                     <span className="text-[12px] uppercase tracking-widest text-muted-foreground">Signature</span>
                     <p className="text-[12px] font-mono text-[#f5c45e]/40 break-all mt-0.5 leading-relaxed">{screenResult.signature}</p>

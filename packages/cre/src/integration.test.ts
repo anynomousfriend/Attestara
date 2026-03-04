@@ -10,27 +10,27 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { ethers }            from "ethers";
-import axios                 from "axios";
-import * as dotenv           from "dotenv";
-import * as path             from "path";
-import * as fs               from "fs";
+import { ethers } from "ethers";
+import axios from "axios";
+import * as dotenv from "dotenv";
+import * as path from "path";
+import * as fs from "fs";
 
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
-const CRE_URL        = `http://localhost:${process.env.CRE_PORT || 4000}`;
-const MOCK_AML_URL   = `http://localhost:${process.env.MOCK_AML_PORT || 4001}`;
-const RPC_URL        = process.env.TENDERLY_FORK_RPC || "http://localhost:8545";
-const CHAIN_ID       = parseInt(process.env.CHAIN_ID || "1");
+const CRE_URL = `http://localhost:${process.env.CRE_PORT || 4000}`;
+const MOCK_AML_URL = `http://localhost:${process.env.MOCK_AML_PORT || 4001}`;
+const RPC_URL = process.env.TENDERLY_FORK_RPC || "http://localhost:8545";
+const CHAIN_ID = parseInt(process.env.CHAIN_ID || "11155111");
 
 // Load deployed addresses
-const DEPLOYED_PATH  = path.resolve(__dirname, "../../../deployed.json");
+const DEPLOYED_PATH = path.resolve(__dirname, "../../../deployed.json");
 
 interface DeployedContracts {
   contracts: {
-    DIDRegistry:                   string;
+    DIDRegistry: string;
     ComplianceAttestationVerifier: string;
-    PermissionedVault:             string;
+    PermissionedVault: string;
   };
   external: { USDC: string };
 }
@@ -129,9 +129,9 @@ async function main() {
   }
 
   const didRegistry = new ethers.Contract(DIDRegistry, DID_REGISTRY_ABI, institutionWallet);
-  const verifier    = new ethers.Contract(ComplianceAttestationVerifier, VERIFIER_ABI, provider);
-  const vault       = new ethers.Contract(PermissionedVault, VAULT_ABI, institutionWallet);
-  const usdc        = new ethers.Contract(USDC_ADDR, ERC20_ABI, institutionWallet);
+  const verifier = new ethers.Contract(ComplianceAttestationVerifier, VERIFIER_ABI, provider);
+  const vault = new ethers.Contract(PermissionedVault, VAULT_ABI, institutionWallet);
+  const usdc = new ethers.Contract(USDC_ADDR, ERC20_ABI, institutionWallet);
 
   // ── TEST 1: Health checks ──────────────────────────────────────────────────
   console.log("── Block 1: Service Health ─────────────────────────────────────");
@@ -151,10 +151,10 @@ async function main() {
   console.log("\n── Block 2: DID Registration ───────────────────────────────────");
 
   await test("Institution registers DID on-chain", async () => {
-    const did          = `did:zk:${institutionWallet.address.toLowerCase()}`;
-    const docJson      = JSON.stringify({ id: did, controller: institutionWallet.address, type: "Institution" });
+    const did = `did:zk:${institutionWallet.address.toLowerCase()}`;
+    const docJson = JSON.stringify({ id: did, controller: institutionWallet.address, type: "Institution" });
     const documentHash = ethers.keccak256(ethers.toUtf8Bytes(docJson));
-    const endpoint     = `https://did.example.com/${institutionWallet.address}`;
+    const endpoint = `https://did.example.com/${institutionWallet.address}`;
 
     const tx = await didRegistry.register(did, documentHash, endpoint);
     await tx.wait();
@@ -175,7 +175,7 @@ async function main() {
   await test("CLEARED address passes AML screen via CRE", async () => {
     const res = await axios.post(`${CRE_URL}/api/v1/compliance/screen`, {
       address: institutionWallet.address,
-      amount:  100000,
+      amount: 100000,
     });
     assert(res.data.status === "CLEARED", `Expected CLEARED, got ${res.data.status}`);
     assert(res.data.signature !== undefined, "No signature returned");
@@ -186,7 +186,7 @@ async function main() {
     try {
       await axios.post(`${CRE_URL}/api/v1/compliance/screen`, {
         address: "0x000000000000000000000000000000000000dEaD",
-        amount:  100000,
+        amount: 100000,
       });
       throw new Error("Should have been rejected");
     } catch (err: any) {
@@ -201,7 +201,7 @@ async function main() {
   await test("CRE produces valid EIP-712 attestation", async () => {
     const res = await axios.post(`${CRE_URL}/api/v1/compliance/screen`, {
       address: institutionWallet.address,
-      amount:  500000,
+      amount: 500000,
     });
     screenResult = res.data;
     assert(screenResult.status === "CLEARED", "Not cleared");
@@ -210,11 +210,11 @@ async function main() {
     const att = screenResult.attestation;
     const [valid, reason] = await verifier.isAttestationValid(
       {
-        subject:       att.subject,
+        subject: att.subject,
         amlReportHash: att.amlReportHash,
-        expiry:        BigInt(att.expiry),
-        nonce:         BigInt(att.nonce),
-        amlProvider:   att.amlProvider,
+        expiry: BigInt(att.expiry),
+        nonce: BigInt(att.nonce),
+        amlProvider: att.amlProvider,
       },
       screenResult.signature
     );
@@ -230,7 +230,7 @@ async function main() {
     // Get fresh attestation for deposit
     const screenRes = await axios.post(`${CRE_URL}/api/v1/compliance/screen`, {
       address: institutionWallet.address,
-      amount:  1000,
+      amount: 1000,
     });
     const att = screenRes.data.attestation;
     const sig = screenRes.data.signature;
@@ -243,11 +243,11 @@ async function main() {
     const depositTx = await vault.deposit(
       depositAmount,
       {
-        subject:       att.subject,
+        subject: att.subject,
         amlReportHash: att.amlReportHash,
-        expiry:        BigInt(att.expiry),
-        nonce:         BigInt(att.nonce),
-        amlProvider:   att.amlProvider,
+        expiry: BigInt(att.expiry),
+        nonce: BigInt(att.nonce),
+        amlProvider: att.amlProvider,
       },
       sig
     );
@@ -266,11 +266,11 @@ async function main() {
       await vault.deposit(
         depositAmount,
         {
-          subject:       institutionWallet.address,
+          subject: institutionWallet.address,
           amlReportHash: ethers.ZeroHash,
-          expiry:        BigInt(Math.floor(Date.now() / 1000) + 900),
-          nonce:         BigInt(1),
-          amlProvider:   "fake",
+          expiry: BigInt(Math.floor(Date.now() / 1000) + 900),
+          nonce: BigInt(1),
+          amlProvider: "fake",
         },
         fakeSig
       );
@@ -294,11 +294,11 @@ async function main() {
       await vault.deposit(
         depositAmount,
         {
-          subject:       att.subject,
+          subject: att.subject,
           amlReportHash: att.amlReportHash,
-          expiry:        BigInt(att.expiry),
-          nonce:         BigInt(att.nonce),
-          amlProvider:   att.amlProvider,
+          expiry: BigInt(att.expiry),
+          nonce: BigInt(att.nonce),
+          amlProvider: att.amlProvider,
         },
         screenResult.signature
       );

@@ -4,7 +4,7 @@
 
 **A CRE-orchestrated compliance layer for institutional DeFi**
 
-*Real-time AML screening · EIP-712 attestations · Zero on-chain exposure*
+*AI-powered AML screening · EIP-712 attestations · Zero on-chain exposure*
 
 ---
 
@@ -28,7 +28,8 @@ Institution Wallet
 ┌──────────────────────┐
 │  CRE Engine :4000    │  ← Compliance & Routing Engine (off-chain enclave)
 │  ┌────────────────┐  │
-│  │ AML Screening  │──┼──► Mock AML / Chainalysis KYT
+│  │ AI AML Oracle  │──┼──► Etherscan API + Gemini AI (primary)
+│  │ Mock AML       │──┼──► Mock AML Server (fallback)
 │  │ EIP-712 Sign   │  │
 │  │ Tx Simulation  │──┼──► Tenderly Simulation API
 │  │ Trace Analysis │──┼──► Tenderly Transaction API
@@ -80,8 +81,8 @@ New to institutional DeFi compliance? Here's what every term in this project mea
 | **Attestation** | A signed statement issued by the CRE that says "I checked this address against AML rules and it passed." It contains the subject address, an AML report hash, an expiry timestamp, and a one-time nonce. The vault verifies this on-chain before accepting a deposit. |
 | **Nonce** | A one-time random number embedded in each attestation. Once an attestation is used in a deposit, its nonce is permanently recorded as spent in the `ComplianceAttestationVerifier` contract. This prevents the same attestation being replayed to make a second deposit. |
 | **TTL** | *Time To Live* — the validity window of a signed attestation, defaulting to 15 minutes. After expiry, the vault rejects the deposit with `Attestation__Expired`. This limits the window in which a compromised attestation could be misused. |
-| **Tenderly** | A blockchain development platform used by Attestara for four things: (1) hosting a fork of Ethereum mainnet as a Virtual TestNet, (2) simulating transactions before execution, (3) providing execution traces for gas analysis, and (4) firing webhooks when specific contract calls are detected. |
-| **Virtual TestNet / Fork** | A sandboxed copy of Ethereum mainnet state hosted by Tenderly. It behaves exactly like mainnet (same contract addresses, same token balances) but transactions are isolated and free. Attestara deploys to a fork so you can run the full stack without spending real ETH or USDC. |
+| **Tenderly** | A blockchain development platform used by Attestara for four things: (1) hosting a **Virtual Sepolia TestNet**, (2) simulating transactions before execution, (3) providing execution traces for gas analysis, and (4) firing webhooks when specific contract calls are detected. Contracts deployed to Tenderly Virtual TestNets are **automatically verified** via the `@tenderly/hardhat-tenderly` plugin. |
+| **Virtual TestNet / Fork** | A sandboxed copy of Sepolia testnet state hosted by Tenderly (`chainId: 11155111`). Transactions are isolated and free (funded with VETH via `tenderly_setBalance`). Attestara deploys to a Virtual Sepolia fork so you can run the full stack without spending real ETH. |
 | **Simulation** | Tenderly's ability to execute a transaction against fork state without mining it. Attestara uses this as a pre-flight check — if the deposit would revert, the user sees the decoded reason before any gas is spent. |
 | **ERC-20** | The standard interface for fungible tokens on Ethereum. Attestara uses USDC (a stablecoin pegged to $1) as the deposit asset. USDC implements ERC-20, so the vault calls `approve` + `transferFrom` to pull funds. |
 | **ERC-4626** | A standard for tokenized vaults (yield-bearing deposit contracts). `PermissionedVault.sol` follows the spirit of ERC-4626 but adds a mandatory compliance gate before each deposit. |
@@ -102,9 +103,30 @@ New to institutional DeFi compliance? Here's what every term in this project mea
 
 ### Core Compliance Pipeline
 - **DID Resolution** — institutions register on-chain Decentralized Identifiers via `DIDRegistry.sol`
-- **AML Screening** — pluggable adapter for Chainalysis KYT or the included mock server
+- **AI-Powered AML Screening** — wallet transaction history analysed by Gemini AI via Etherscan data (with fallback to mock/Chainalysis adapters)
 - **EIP-712 Attestations** — CRE signs typed-data attestations with a 15-minute TTL and one-time nonces
 - **Relay Mode** — CRE can relay the full deposit transaction on behalf of the institution
+
+### Feature 6 — AI Compliance Oracle (Etherscan + Gemini AI)
+> *"Let AI analyze 50 transactions in 2 seconds instead of a human reviewing for days"*
+
+The CRE's **AI AML Adapter** replaces traditional rule-based screening with intelligent wallet analysis:
+
+1. **Etherscan** — fetches the last 50 transactions + token transfers for the wallet (free API)
+2. **Gemini AI** — sends a structured prompt with tx summary, counterparty analysis, and known protocol detection
+3. **AI produces** a risk score (0–100), alert codes, and a **natural-language narrative** explaining the assessment
+4. **Fallback** — if APIs are unreachable, static mock rules still work (demo hint pills remain functional)
+
+```
+Screen Request → Etherscan (tx history) → Gemini AI (risk analysis) → AMLScreeningResult + AI Narrative
+```
+
+The AI narrative appears in the frontend as a purple **🧠 AI Risk Analysis** card:
+- **ScreenForm** — after the screening result badge
+- **TransactionStepper** — in the attestation review step
+- **AML Logs** — 🧠 tooltip on rows screened by AI
+
+**Adapter priority:** `AI Oracle` > `Chainalysis KYT` > `Mock AML` (set by environment variables)
 
 ### Feature 1 — Tenderly Simulation Pre-Flight
 > *"Predict the future before committing to it"*
@@ -225,7 +247,8 @@ packages/
 │       │   ├── scenarioRunner.ts              [F4] Adversarial scenarios
 │       │   └── traceAnalyzer.ts               [F5] Gas trace decomposition
 │       └── adapters/
-│           ├── mockAmlAdapter.ts              Local mock AML server
+│           ├── aiAmlAdapter.ts                 [F6] AI Oracle (Etherscan + Gemini)
+│           ├── mockAmlAdapter.ts              Local mock AML server (fallback)
 │           └── chainalysisAdapter.ts          Real Chainalysis KYT
 │
 ├── mock-aml/           Mock Chainalysis KYT server (port 4001)
@@ -248,15 +271,24 @@ packages/
 
 ---
 
-## Quick Start
+## Quick Start — End-to-End Setup
 
 ### Prerequisites
 
-- Node.js 18+
-- A [Tenderly](https://tenderly.co) account with a Virtual TestNet (fork) already created
-- The fork must have contracts deployed (run setup scripts below if starting fresh)
+Before you begin, make sure you have the following installed and ready:
 
-### 1. Clone & Install
+| Requirement | How to get it |
+|---|---|
+| **Node.js 18+** | [nodejs.org](https://nodejs.org/) — `node -v` should print 18+ |
+| **npm** | Comes with Node.js — `npm -v` should print 9+ |
+| **Git** | [git-scm.com](https://git-scm.com/) |
+| **Tenderly account** | Free at [tenderly.co](https://tenderly.co) — you need API key, account slug, and project slug |
+| **Etherscan API key** | Free at [etherscan.io/myapikey](https://etherscan.io/myapikey) — for AI wallet analysis |
+| **Gemini API key** | Free at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) — for AI risk narrative |
+
+> **Note:** Etherscan + Gemini keys are optional. Without them, the system falls back to the built-in Mock AML server.
+
+### Step 1 — Clone & Install
 
 ```bash
 git clone https://github.com/your-org/attestara.git
@@ -264,45 +296,145 @@ cd attestara
 npm install
 ```
 
-### 2. Configure Environment
+### Step 2 — Configure Environment
 
 ```bash
 cp .env.example .env
 ```
 
-Fill in `.env` — see [Environment Variables](#environment-variables) below. The minimum required set for a full run:
-
-```
-TENDERLY_API_KEY=...
-TENDERLY_ACCOUNT_SLUG=...
-TENDERLY_PROJECT_SLUG=...
-TENDERLY_FORK_RPC=...
-TENDERLY_FORK_ID=...
-DEPLOYER_PRIVATE_KEY=...
-DEPLOYER_ADDRESS=...
-CRE_SIGNER_PRIVATE_KEY=...
-DID_REGISTRY_ADDRESS=...
-VERIFIER_ADDRESS=...
-VAULT_ADDRESS=...
-```
-
-### 3. (First time only) Set up Tenderly fork & deploy contracts
+Open `.env` and fill in your values. Here's the **minimum required** set:
 
 ```bash
-# Create a Tenderly Virtual TestNet fork of Ethereum mainnet
+# ── Tenderly (required for on-chain features) ────────────────────
+TENDERLY_API_KEY=your_tenderly_api_key
+TENDERLY_ACCOUNT_SLUG=your_account
+TENDERLY_PROJECT_SLUG=your_project
+
+# These get auto-filled by fork:setup (Step 3)
+TENDERLY_VIRTUAL_SEPOLIA_RPC=
+TENDERLY_FORK_RPC=
+TENDERLY_FORK_ID=
+
+# ── Network ──────────────────────────────────────────────────────
+CHAIN_ID=11155111  # Sepolia testnet
+
+# ── Deployer wallet (generated in Step 3) ────────────────────────
+DEPLOYER_PRIVATE_KEY=
+DEPLOYER_ADDRESS=
+
+# ── CRE Signer (auto-generated on first CRE start) ──────────────
+CRE_SIGNER_PRIVATE_KEY=
+CRE_SIGNER_ADDRESS=
+
+# ── Contract addresses (auto-filled by deploy script) ────────────
+DID_REGISTRY_ADDRESS=
+VERIFIER_ADDRESS=
+VAULT_ADDRESS=
+
+# ── AI Compliance Oracle (optional, recommended) ─────────────────
+ETHERSCAN_API_KEY=your_etherscan_key
+GEMINI_API_KEY=your_gemini_key
+```
+
+### Step 3 — First-Time Setup (Tenderly Virtual Sepolia + Contract Deployment)
+
+```bash
+# 1. Generate a deployer wallet
+node -e "const {ethers}=require('ethers');const w=ethers.Wallet.createRandom();console.log('DEPLOYER_PRIVATE_KEY='+w.privateKey);console.log('DEPLOYER_ADDRESS='+w.address)"
+# Copy the output to your .env
+
+# 2. Create a Tenderly Virtual Sepolia TestNet
 npm run fork:setup -w packages/contracts
+# This populates TENDERLY_VIRTUAL_SEPOLIA_RPC, TENDERLY_FORK_RPC, TENDERLY_FORK_ID in .env
 
-# Deploy DIDRegistry, ComplianceAttestationVerifier, PermissionedVault
+# 3. Fund the deployer account with VETH (100 ETH)
+# See "Funding Accounts" section below for details
+curl "$TENDERLY_VIRTUAL_SEPOLIA_RPC" \
+  -X POST -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"tenderly_setBalance","params":[["YOUR_DEPLOYER_ADDRESS"],"0x56BC75E2D63100000"]}'
+
+# 4. Deploy the three smart contracts (auto-verified on Tenderly)
 npm run deploy -w packages/contracts
+# This populates DID_REGISTRY_ADDRESS, VERIFIER_ADDRESS, VAULT_ADDRESS
 
-# Fund deployer with USDC + register their DID
+# 5. Fund the deployer with USDC and register their DID
 npx ts-node packages/contracts/scripts/setupDepositor.ts
 ```
 
-### 4. Start all services
+### Funding Accounts on Tenderly Virtual Sepolia
+
+Tenderly Virtual TestNets use **VETH** (virtual ETH). Fund any account using `tenderly_setBalance`:
+
+**Using curl:**
+```bash
+curl "https://virtual.sepolia.rpc.tenderly.co/YOUR_RPC_ID" \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "tenderly_setBalance",
+    "params": [["0xYOUR_ADDRESS"], "0xDE0B6B3A7640000"]
+  }'
+```
+
+> `0xDE0B6B3A7640000` = 1 ETH · `0x56BC75E2D63100000` = 100 ETH
+
+**Using ethers.js:**
+```typescript
+import { ethers, Wallet, Mnemonic } from "ethers";
+
+const RPC_URL = "https://virtual.sepolia.rpc.tenderly.co/YOUR_RPC_ID";
+const provider = new ethers.JsonRpcProvider(RPC_URL);
+
+// Fund an existing address
+await provider.send("tenderly_setBalance", [
+  ["0xYOUR_ADDRESS"],
+  "0x56BC75E2D63100000", // 100 VETH
+]);
+
+// Or create a fresh wallet and fund it
+const signer = Wallet.fromPhrase(
+  Mnemonic.fromEntropy(ethers.randomBytes(24)).phrase,
+  provider
+);
+await provider.send("tenderly_setBalance", [
+  [signer.address],
+  "0xDE0B6B3A7640000", // 1 VETH
+]);
+console.log(`Funded: ${signer.address}`);
+```
+
+### Deploying Contracts
+
+Contracts are deployed to the `virtual_sepolia` network and **automatically verified** on Tenderly:
 
 ```bash
-# Terminal 1 — Mock AML server (port 4001)
+# Deploy via Hardhat (recommended)
+npx hardhat run scripts/deploy.ts --network virtual_sepolia
+
+# Or via the workspace shortcut
+npm run deploy -w packages/contracts
+```
+
+After deployment:
+- Contract addresses are written to `deployed.json` and `.env`
+- Contracts are automatically verified on the Tenderly dashboard
+- `chainId` in `deployed.json` will show `11155111` (Sepolia)
+
+### Step 4 — Start All Services
+
+**Option A — All-in-one (recommended):**
+```bash
+# Starts Mock AML (port 4001) + CRE Engine (port 4000) together
+npm run dev
+
+# In a separate terminal: Frontend (port 3000)
+cd packages/frontend && npx vite --port 3000
+```
+
+**Option B — Individual terminals:**
+```bash
+# Terminal 1 — Mock AML server (port 4001) — only needed if NOT using AI adapter
 npm run dev -w packages/mock-aml
 
 # Terminal 2 — CRE engine (port 4000)
@@ -312,13 +444,34 @@ npm run dev -w packages/cre
 npm run dev -w packages/frontend
 ```
 
-Or use concurrently to run mock-aml + CRE together:
+### Step 5 — Verify Everything Works
 
 ```bash
-npm run dev   # starts mock-aml + cre
+# Check CRE health
+curl -s http://localhost:4000/health | jq
+# Should show: "amlProvider": "ai-oracle" (or "mock-aml" if no AI keys)
+
+# Run a compliance screen
+curl -s -X POST http://localhost:4000/api/v1/compliance/screen \
+  -H "Content-Type: application/json" \
+  -d '{"address":"0x742d35Cc6634C0532925a3b844Bc454e4438f44e","amount":50000}' | jq
+# Should return CLEARED with aiNarrative
 ```
 
-Then open **http://localhost:3000**
+Then open **http://localhost:3000** — you should see the full dashboard.
+
+### Step 6 — Run the Demo
+
+```bash
+# Automated 6-scenario demo
+npm run demo
+```
+
+Or use the frontend to manually:
+1. Enter an address + amount in the **Transaction Stepper**
+2. Click **"Run Compliance Screen"** → see AI Risk Analysis 🧠
+3. Review the EIP-712 attestation
+4. Execute the on-chain deposit
 
 ---
 
@@ -354,20 +507,22 @@ All CRE endpoints are on `http://localhost:4000`.
 { "address": "0x...", "amount": 1000000 }
 ```
 
-**Response (CLEARED):**
+**Response (CLEARED with AI):**
 ```json
 {
   "status": "CLEARED",
   "did": "did:ethr:0x...",
   "riskScore": 12,
+  "amlProvider": "ai-oracle",
   "attestation": {
     "subject": "0x...",
     "amlReportHash": "0x...",
     "expiry": "1700000000",
     "nonce": "0x...",
-    "amlProvider": "mock-aml"
+    "amlProvider": "ai-oracle"
   },
-  "signature": "0x..."
+  "signature": "0x...",
+  "aiNarrative": "This wallet has 47 transactions over 6 months, interacting primarily with Uniswap V3 and Aave V2. No mixer interactions detected. Risk assessment: LOW."
 }
 ```
 
@@ -454,16 +609,30 @@ function unpause() external onlyOwner
 
 ---
 
-## AML Screening Rules (Mock Server)
+## AML Screening Adapters
+
+### AI Compliance Oracle (default when keys are set)
+
+The AI adapter fetches real wallet data from **Etherscan** and sends it to **Google Gemini AI** for intelligent risk analysis. It produces a structured risk score plus a natural-language narrative.
+
+Set `ETHERSCAN_API_KEY` + `GEMINI_API_KEY` in `.env` to activate.
+
+**Static rules for demo compatibility** (applied before AI analysis):
 
 | Rule | Status | Risk Score |
 |---|---|---|
 | Address starts with `0x000…` | `BLOCKED` | 100 — OFAC sanctioned pattern |
 | Address contains `dead` or `beef` | `HIGH_RISK` | 75 — mixer pattern |
 | Amount > 10,000,000 USDC | `HIGH_RISK` | 60 — large transaction flag |
-| Everything else | `CLEARED` | 0–20 |
+| Everything else | Analysed by Gemini AI | 0–100 (AI-determined) |
 
-To use real [Chainalysis KYT](https://www.chainalysis.com/chainalysis-kyt/), set `CHAINALYSIS_API_KEY` in `.env`.
+### Mock AML Server (fallback)
+
+Built-in mock server on port 4001 that simulates Chainalysis KYT. Used automatically when AI keys are not set.
+
+### Chainalysis KYT (production)
+
+Real [Chainalysis KYT](https://www.chainalysis.com/chainalysis-kyt/) adapter. Set `CHAINALYSIS_API_KEY` in `.env`.
 
 ---
 
@@ -476,19 +645,22 @@ Copy `.env.example` to `.env`. **Never commit `.env`.**
 | `TENDERLY_API_KEY` | ✅ | Tenderly API key |
 | `TENDERLY_ACCOUNT_SLUG` | ✅ | Tenderly account slug |
 | `TENDERLY_PROJECT_SLUG` | ✅ | Tenderly project slug |
-| `TENDERLY_FORK_RPC` | ✅ | Admin RPC URL of Virtual TestNet |
+| `TENDERLY_VIRTUAL_SEPOLIA_RPC` | ✅ | Virtual Sepolia Admin RPC URL |
+| `TENDERLY_FORK_RPC` | ✅ | Admin RPC URL (backward compat for CRE) |
 | `TENDERLY_FORK_ID` | ✅ | Virtual TestNet UUID (for simulation) |
 | `TENDERLY_PUBLIC_RPC` | — | Public RPC (read-only access) |
 | `DEPLOYER_PRIVATE_KEY` | ✅ | Wallet that deployed the contracts |
 | `DEPLOYER_ADDRESS` | ✅ | Address of deployer wallet |
 | `CRE_SIGNER_PRIVATE_KEY` | ✅ | CRE's EIP-712 signing key |
 | `CRE_SIGNER_ADDRESS` | ✅ | Address of CRE signer (must match contract) |
-| `CHAIN_ID` | ✅ | Chain ID (1 for mainnet fork) |
+| `CHAIN_ID` | ✅ | Chain ID (`11155111` for Virtual Sepolia) |
 | `DID_REGISTRY_ADDRESS` | ✅ | Deployed DIDRegistry address |
 | `VERIFIER_ADDRESS` | ✅ | Deployed ComplianceAttestationVerifier address |
 | `VAULT_ADDRESS` | ✅ | Deployed PermissionedVault address |
-| `USDC_ADDRESS` | — | USDC token address (default: mainnet) |
+| `USDC_ADDRESS` | — | USDC token address |
 | `CHAINALYSIS_API_KEY` | — | Real KYT key; leave blank for mock |
+| `ETHERSCAN_API_KEY` | — | Etherscan API key for AI adapter ([free](https://etherscan.io/myapikey)) |
+| `GEMINI_API_KEY` | — | Google Gemini API key for AI adapter ([free](https://aistudio.google.com/apikey)) |
 | `CRE_PORT` | — | CRE port (default: 4000) |
 | `MOCK_AML_PORT` | — | Mock AML port (default: 4001) |
 | `MOCK_AML_URL` | — | Mock AML URL (default: http://localhost:4001) |
@@ -519,7 +691,7 @@ The on-chain verifier checks the **signature** (proving the CRE ran the check) b
 - **Nonce exhaustion** — nonces are 128-bit random values; collision probability is negligible.
 - **Vault pause** — `PermissionedVault.pause()` is an emergency kill-switch callable only by the owner.
 - **Replay protection** — `usedNonces[subject][nonce]` is set atomically with the deposit in a single transaction.
-- **Tenderly fork** — the Virtual TestNet is a sandboxed environment. Production deployments should use a real network.
+- **Tenderly Virtual Sepolia** — the Virtual TestNet (`chainId: 11155111`) is a sandboxed Sepolia environment. Contracts are auto-verified via `@tenderly/hardhat-tenderly`. Production deployments should use a real network.
 
 ---
 
@@ -549,6 +721,6 @@ MIT — see [LICENSE](LICENSE)
 
 <div align="center">
 
-Built with [Tenderly](https://tenderly.co) · [ethers.js](https://ethers.org) · [OpenZeppelin](https://openzeppelin.com)
+Built with [Tenderly](https://tenderly.co) · [ethers.js](https://ethers.org) · [OpenZeppelin](https://openzeppelin.com) · [Google Gemini AI](https://ai.google.dev/) · [Etherscan](https://etherscan.io)
 
 </div>

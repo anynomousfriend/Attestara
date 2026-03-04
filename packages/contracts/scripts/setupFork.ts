@@ -1,12 +1,10 @@
 /**
  * setupFork.ts
  * ─────────────────────────────────────────────────────────────────────────────
- * 1. Creates a Tenderly Virtual TestNet fork of Ethereum mainnet (latest block).
- * 2. Impersonates the Aave Arc PermissionManager admin to prove CRE can act as
- *    middleware without protocol upgrades.
- * 3. Funds the deployer wallet with ETH and USDC via Tenderly's setBalance /
- *    setStorageAt tricks.
- * 4. Writes TENDERLY_FORK_RPC to ../../.env so hardhat picks it up automatically.
+ * 1. Creates a Tenderly Virtual TestNet fork of Sepolia (latest block).
+ * 2. Funds the deployer wallet with ETH via Tenderly's setBalance.
+ * 3. Writes TENDERLY_VIRTUAL_SEPOLIA_RPC to ../../.env so hardhat picks it up
+ *    automatically.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -18,17 +16,9 @@ import * as dotenv from "dotenv";
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
 // ── Tenderly config ──────────────────────────────────────────────────────────
-const TENDERLY_API_KEY     = process.env.TENDERLY_API_KEY!;
-const TENDERLY_ACCOUNT     = process.env.TENDERLY_ACCOUNT_SLUG!;
-const TENDERLY_PROJECT     = process.env.TENDERLY_PROJECT_SLUG!;
-
-// ── Well-known mainnet addresses ─────────────────────────────────────────────
-// Aave Arc PermissionManager (mainnet) — controls the whitelist
-const AAVE_ARC_PERMISSION_MANAGER = "0xF4a1F5fEA79C3609514A417425971FadC10eCfBE";
-// Aave Arc LendingPool (mainnet)
-const AAVE_ARC_LENDING_POOL       = "0x37D7306019a38Af123e4b245Eb6C28AF552e0bB0";
-// USDC mainnet
-const USDC_ADDRESS                = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const TENDERLY_API_KEY = process.env.TENDERLY_API_KEY!;
+const TENDERLY_ACCOUNT = process.env.TENDERLY_ACCOUNT_SLUG!;
+const TENDERLY_PROJECT = process.env.TENDERLY_PROJECT_SLUG!;
 
 const ENV_PATH = path.resolve(__dirname, "../../../.env");
 
@@ -40,21 +30,12 @@ function tenderlyHeaders() {
   };
 }
 
-async function setBalance(forkRpc: string, address: string, hexBalance: string) {
-  await axios.post(forkRpc, {
+async function setBalance(rpcUrl: string, address: string, hexBalance: string) {
+  await axios.post(rpcUrl, {
     jsonrpc: "2.0",
-    id:      1,
-    method:  "tenderly_setBalance",
-    params:  [[address], hexBalance],
-  });
-}
-
-async function impersonateAccount(forkRpc: string, address: string) {
-  await axios.post(forkRpc, {
-    jsonrpc: "2.0",
-    id:      1,
-    method:  "eth_sendTransaction",
-    params:  [{ from: address, to: address, value: "0x0" }],
+    id: 1,
+    method: "tenderly_setBalance",
+    params: [[address], hexBalance],
   });
 }
 
@@ -76,7 +57,7 @@ function updateEnvFile(key: string, value: string) {
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
-  console.log("🔧 Creating Tenderly Virtual TestNet fork of Ethereum mainnet...\n");
+  console.log("🔧 Creating Tenderly Virtual TestNet fork of Sepolia...\n");
 
   if (!TENDERLY_API_KEY || !TENDERLY_ACCOUNT || !TENDERLY_PROJECT) {
     throw new Error(
@@ -84,19 +65,19 @@ async function main() {
     );
   }
 
-  // ── Step 1: Create Virtual TestNet (fork) ────────────────────────────────
+  // ── Step 1: Create Virtual TestNet (Sepolia fork) ────────────────────────
   const createRes = await axios.post(
     `https://api.tenderly.co/api/v1/account/${TENDERLY_ACCOUNT}/project/${TENDERLY_PROJECT}/vnets`,
     {
-      slug:          `attestara-fork-${Date.now()}`,
-      display_name:  "Attestara Fork",
+      slug: `attestara-sepolia-${Date.now()}`,
+      display_name: "Attestara Sepolia Fork",
       fork_config: {
-        network_id: 1,        // Ethereum mainnet
+        network_id: 11155111,        // Sepolia testnet
         block_number: "latest",
       },
       virtual_network_config: {
         chain_config: {
-          chain_id: 1,
+          chain_id: 11155111,
         },
       },
       sync_state_config: {
@@ -110,41 +91,35 @@ async function main() {
     { headers: tenderlyHeaders() }
   );
 
-  const vnet     = createRes.data;
-  const forkId   = vnet.id;
-  // The admin RPC is used for privileged ops (impersonation, setBalance)
+  const vnet = createRes.data;
+  const forkId = vnet.id;
+  // The admin RPC is used for privileged ops (setBalance, etc.)
   const adminRpc = vnet.rpcs?.find((r: any) => r.name === "Admin RPC")?.url
-                || vnet.rpcs?.[0]?.url;
+    || vnet.rpcs?.[0]?.url;
   const publicRpc = vnet.rpcs?.find((r: any) => r.name === "Public RPC")?.url
-                 || vnet.rpcs?.[0]?.url;
+    || vnet.rpcs?.[0]?.url;
 
-  console.log(`✅ Fork created: ${forkId}`);
+  console.log(`✅ Sepolia fork created: ${forkId}`);
   console.log(`   Admin RPC:  ${adminRpc}`);
   console.log(`   Public RPC: ${publicRpc}\n`);
 
-  // ── Step 2: Fund the deployer with 100 ETH ───────────────────────────────
+  // ── Step 2: Fund the deployer with 100 ETH (VETH) ───────────────────────
   const deployerAddress = process.env.DEPLOYER_ADDRESS!;
   if (deployerAddress) {
-    console.log(`💰 Funding deployer ${deployerAddress} with 100 ETH...`);
+    console.log(`💰 Funding deployer ${deployerAddress} with 100 VETH...`);
     await setBalance(adminRpc, deployerAddress, "0x56BC75E2D63100000"); // 100 ETH
-    console.log("   ✅ ETH funded\n");
+    console.log("   ✅ VETH funded\n");
   }
 
-  // ── Step 3: Impersonate Aave Arc PermissionManager admin ────────────────
-  console.log(`🎭 Impersonating Aave Arc PermissionManager: ${AAVE_ARC_PERMISSION_MANAGER}`);
-  await setBalance(adminRpc, AAVE_ARC_PERMISSION_MANAGER, "0x56BC75E2D63100000");
-  console.log("   ✅ Aave Arc admin funded and ready for impersonation\n");
-
-  // ── Step 4: Write env vars ────────────────────────────────────────────────
-  updateEnvFile("TENDERLY_FORK_RPC", adminRpc);
+  // ── Step 3: Write env vars ────────────────────────────────────────────────
+  updateEnvFile("TENDERLY_VIRTUAL_SEPOLIA_RPC", adminRpc);
+  updateEnvFile("TENDERLY_FORK_RPC", adminRpc);    // backward compat for CRE
   updateEnvFile("TENDERLY_FORK_ID", forkId);
   updateEnvFile("TENDERLY_PUBLIC_RPC", publicRpc);
-  updateEnvFile("AAVE_ARC_PERMISSION_MANAGER", AAVE_ARC_PERMISSION_MANAGER);
-  updateEnvFile("AAVE_ARC_LENDING_POOL", AAVE_ARC_LENDING_POOL);
-  updateEnvFile("USDC_ADDRESS", USDC_ADDRESS);
+  updateEnvFile("CHAIN_ID", "11155111");
 
-  console.log("📝 .env updated with fork RPC and addresses");
-  console.log("\n🎉 Tenderly fork setup complete!");
+  console.log("📝 .env updated with Sepolia fork RPC and addresses");
+  console.log("\n🎉 Tenderly Sepolia fork setup complete!");
   console.log(`\nNext: run 'npm run deploy -w packages/contracts' to deploy contracts to the fork.\n`);
 
   return { forkId, adminRpc, publicRpc };

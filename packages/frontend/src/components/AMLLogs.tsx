@@ -18,10 +18,10 @@ function truncate(s: string, n = 8) {
 
 function AmlBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    CLEARED:   "bg-[#f5c45e]/12 text-[#f5c45e] border-[#f5c45e]/25",
-    BLOCKED:   "bg-red-500/10 text-red-400 border-red-500/20",
+    CLEARED: "bg-[#f5c45e]/12 text-[#f5c45e] border-[#f5c45e]/25",
+    BLOCKED: "bg-red-500/10 text-red-400 border-red-500/20",
     HIGH_RISK: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    PENDING:   "bg-white/5 text-white/50 border-white/10",
+    PENDING: "bg-white/5 text-white/50 border-white/10",
   };
   return (
     <Badge variant="outline" className={cn(
@@ -35,13 +35,13 @@ function AmlBadge({ status }: { status: string }) {
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    SETTLED:   "bg-[#f5c45e]/15 text-[#f5c45e] border-[#f5c45e]/30",
-    CLEARED:   "bg-[#f5c45e]/10 text-[#f5c45e]/80 border-[#f5c45e]/20",
-    BLOCKED:   "bg-red-500/10 text-red-400 border-red-500/20",
+    SETTLED: "bg-[#f5c45e]/15 text-[#f5c45e] border-[#f5c45e]/30",
+    CLEARED: "bg-[#f5c45e]/10 text-[#f5c45e]/80 border-[#f5c45e]/20",
+    BLOCKED: "bg-red-500/10 text-red-400 border-red-500/20",
     SUBMITTED: "bg-white/6 text-white/60 border-white/12",
-    PENDING:   "bg-white/4 text-white/40 border-white/8",
-    FAILED:    "bg-white/3 text-white/25 border-white/6",
-    REVOKED:   "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    PENDING: "bg-white/4 text-white/40 border-white/8",
+    FAILED: "bg-white/3 text-white/25 border-white/6",
+    REVOKED: "bg-orange-500/10 text-orange-400 border-orange-500/20",
   };
   return (
     <Badge variant="outline" className={cn(
@@ -58,8 +58,8 @@ function RiskScore({ score }: { score?: number }) {
   const cls = score < 30
     ? "text-[#f5c45e] bg-[#f5c45e]/10"
     : score < 60
-    ? "text-orange-400 bg-orange-500/10"
-    : "text-red-400 bg-red-500/10";
+      ? "text-orange-400 bg-orange-500/10"
+      : "text-red-400 bg-red-500/10";
   return (
     <span className={cn("inline-flex items-center justify-center w-8 h-6 rounded-lg text-[13px] font-mono font-bold", cls)}>
       {score}
@@ -100,12 +100,12 @@ export function AMLLogs() {
         )}
       </AnimatePresence>
 
-      <motion.div initial={{ opacity:0, y:-6 }} animate={{ opacity:1, y:0 }} className="flex items-center justify-between">
+      <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <motion.span
             key={logs.length}
-            initial={{ scale:1.4, opacity:0 }}
-            animate={{ scale:1, opacity:1 }}
+            initial={{ scale: 1.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
             className="text-sm font-mono text-white font-semibold"
           >
             {logs.length}
@@ -124,11 +124,11 @@ export function AMLLogs() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-4 space-y-3">
-              {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-10 w-full rounded-2xl bg-white/4 animate-pulse bg-primary/10" />)}
+              {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-10 w-full rounded-2xl bg-white/4 animate-pulse bg-primary/10" />)}
             </div>
           ) : logs.length === 0 ? (
-            <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} className="flex flex-col items-center justify-center py-24 gap-4">
-              <motion.div animate={{ rotate:[0,10,-10,0] }} transition={{ repeat:Infinity, duration:4 }} ><ClipboardList className="w-10 h-10 text-muted-foreground/50" /></motion.div>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 gap-4">
+              <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 4 }} ><ClipboardList className="w-10 h-10 text-muted-foreground/50" /></motion.div>
               <p className="text-sm text-muted-foreground">No compliance records yet.</p>
             </motion.div>
           ) : (
@@ -148,9 +148,9 @@ export function AMLLogs() {
                     {logs.map((log: AuditLog, i: number) => (
                       <motion.tr
                         key={log.id}
-                        initial={{ opacity:0, x:-10 }}
-                        animate={{ opacity:1, x:0 }}
-                        transition={{ delay: Math.min(i * 0.025, 0.35), duration:0.22 }}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: Math.min(i * 0.025, 0.35), duration: 0.22 }}
                         className={cn("tr-hover border-b border-border/50 group", i % 2 === 0 ? "" : "bg-white/[0.01]")}
                       >
                         <td className="px-4 py-3 font-mono text-muted-foreground/60 whitespace-nowrap tabular-nums">
@@ -164,7 +164,14 @@ export function AMLLogs() {
                           {Number(log.amount).toLocaleString()}
                           <span className="text-muted-foreground/40 text-[12px] ml-1">USDC</span>
                         </td>
-                        <td className="px-4 py-3"><AmlBadge status={log.amlStatus} /></td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1.5">
+                            <AmlBadge status={log.amlStatus} />
+                            {log.aiNarrative && (
+                              <span title={log.aiNarrative} className="cursor-help text-purple-400 text-xs">🧠</span>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-4 py-3"><RiskScore score={log.riskScore} /></td>
                         <td className="px-4 py-3">
                           <div className="flex flex-wrap gap-1">
@@ -180,7 +187,7 @@ export function AMLLogs() {
                         <td className="px-4 py-3">
                           {log.txHash ? (
                             <motion.a
-                              whileHover={{ scale:1.05 }}
+                              whileHover={{ scale: 1.05 }}
                               href={`https://dashboard.tenderly.co/tx/${log.txHash}`}
                               target="_blank" rel="noreferrer"
                               className="font-mono text-[#f5c45e]/60 hover:text-[#f5c45e] transition-colors whitespace-nowrap"

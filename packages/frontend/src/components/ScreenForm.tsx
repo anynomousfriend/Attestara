@@ -16,11 +16,11 @@ const BLUE_DIM = "rgba(33,114,229,0.12)";
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; label: string }> = {
-    CLEARED:    { cls: "bg-[#f5c45e]/15 text-[#f5c45e] border-[#f5c45e]/30 ", label: "CLEARED"    },
-    BLOCKED:    { cls: "bg-red-500/10 text-red-400 border-red-500/25",                    label: "BLOCKED"    },
-    HIGH_RISK:  { cls: "bg-orange-500/10 text-orange-400 border-orange-500/25",           label: "⚠ HIGH RISK"  },
-    SETTLED:    { cls: "bg-[#f5c45e]/20 text-[#f5c45e] border-[#f5c45e]/40 ",   label: "SETTLED"    },
-    SUBMITTING: { cls: "bg-white/5 text-white/60 border-white/15",                        label: "⏳ SUBMITTING" },
+    CLEARED: { cls: "bg-[#f5c45e]/15 text-[#f5c45e] border-[#f5c45e]/30 ", label: "CLEARED" },
+    BLOCKED: { cls: "bg-red-500/10 text-red-400 border-red-500/25", label: "BLOCKED" },
+    HIGH_RISK: { cls: "bg-orange-500/10 text-orange-400 border-orange-500/25", label: "⚠ HIGH RISK" },
+    SETTLED: { cls: "bg-[#f5c45e]/20 text-[#f5c45e] border-[#f5c45e]/40 ", label: "SETTLED" },
+    SUBMITTING: { cls: "bg-white/5 text-white/60 border-white/15", label: "⏳ SUBMITTING" },
   };
   const s = map[status] ?? { cls: "bg-muted text-muted-foreground border-border", label: status };
   return (
@@ -67,8 +67,8 @@ function MonoRow({ label, value, dim, delay = 0, copyable }: {
 type Step = "idle" | "screening" | "cleared" | "depositing" | "settled" | "failed" | "blocked";
 
 const HINTS = [
-  { label: "0x000…",     hint: "BLOCKED",   addr: "0x0000000000000000000000000000000000000001" },
-  { label: "…dead…",     hint: "HIGH RISK", addr: "" },
+  { label: "0x000…", hint: "BLOCKED", addr: "0x0000000000000000000000000000000000000001" },
+  { label: "…dead…", hint: "HIGH RISK", addr: "" },
   { label: "> 10M USDC", hint: "HIGH RISK", addr: "" },
 ];
 
@@ -87,30 +87,30 @@ function Spinner() {
 
 export function ScreenForm() {
   const queryClient = useQueryClient();
-  const [address, setAddress]   = useState("");
-  const [amount, setAmount]     = useState("");
+  const [address, setAddress] = useState("");
+  const [amount, setAmount] = useState("");
   const [privateKey, setPrivKey] = useState("");
-  const [showKey, setShowKey]   = useState(false);
-  const [step, setStep]         = useState<Step>("idle");
-  const [screenResult, setScreenResult]   = useState<ScreenResponse | undefined>();
+  const [showKey, setShowKey] = useState(false);
+  const [step, setStep] = useState<Step>("idle");
+  const [screenResult, setScreenResult] = useState<ScreenResponse | undefined>();
   const [depositResult, setDepositResult] = useState<DepositResponse | undefined>();
 
   const screenMutation = useMutation({
     mutationFn: () => api.screen({ address, amount: Number(amount) }),
-    onMutate:   () => setStep("screening"),
-    onSuccess:  (d) => {
+    onMutate: () => setStep("screening"),
+    onSuccess: (d) => {
       setScreenResult(d);
-      if (d.status === "CLEARED")    { setStep("cleared"); toast.success("Address cleared — attestation ready"); }
-      else if (d.status === "BLOCKED") { setStep("blocked"); toast.error("Address blocked — sanctions match");   }
-      else                             { setStep("blocked"); toast.warning("High risk — manual review required"); }
+      if (d.status === "CLEARED") { setStep("cleared"); toast.success("Address cleared — attestation ready"); }
+      else if (d.status === "BLOCKED") { setStep("blocked"); toast.error("Address blocked — sanctions match"); }
+      else { setStep("blocked"); toast.warning("High risk — manual review required"); }
     },
     onError: () => { setStep("idle"); toast.error("Screening failed"); },
   });
 
   const depositMutation = useMutation({
     mutationFn: () => api.deposit({ address, amount: Number(amount), institutionPrivateKey: privateKey }),
-    onMutate:   () => { setStep("depositing"); toast.loading("Submitting to PermissionedVault…", { id: "dep" }); },
-    onSuccess:  (d) => {
+    onMutate: () => { setStep("depositing"); toast.loading("Submitting to PermissionedVault…", { id: "dep" }); },
+    onSuccess: (d) => {
       setDepositResult(d);
       toast.dismiss("dep");
       if (d.status === "SETTLED") {
@@ -135,22 +135,22 @@ export function ScreenForm() {
     setShowKey(false); screenMutation.reset(); depositMutation.reset();
   }
 
-  const isCleared    = screenResult?.status === "CLEARED";
-  const isBlocked    = screenResult?.status === "BLOCKED" || screenResult?.status === "HIGH_RISK";
-  const isSettled    = step === "settled";
+  const isCleared = screenResult?.status === "CLEARED";
+  const isBlocked = screenResult?.status === "BLOCKED" || screenResult?.status === "HIGH_RISK";
+  const isSettled = step === "settled";
   const isDepositing = step === "depositing";
 
   return (
     <div className="max-w-xl mx-auto space-y-4">
       {/* ── Input card ── */}
-      <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.4, ease:[0.32,0.72,0,1] }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}>
         <Card className="bg-card shadow-sm border border-border border-border rounded-3xl overflow-hidden">
           <CardHeader className="pb-4 pt-6 px-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <motion.div
-                  animate={{ rotate:[0,8,-8,0] }}
-                  transition={{ repeat:Infinity, repeatDelay:5, duration:0.4 }}
+                  animate={{ rotate: [0, 8, -8, 0] }}
+                  transition={{ repeat: Infinity, repeatDelay: 5, duration: 0.4 }}
                   className="flex items-center justify-center w-10 h-10 rounded-2xl bg-[#f5c45e]/12 border border-[#f5c45e]/25"
                 >
                   <Zap className="w-5 h-5 text-primary" />
@@ -214,7 +214,7 @@ export function ScreenForm() {
             {/* Screen button */}
             <AnimatePresence mode="wait">
               {(step === "idle" || step === "screening") && (
-                <motion.div key="screen-btn" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}>
+                <motion.div key="screen-btn" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   <Button
                     onClick={() => screenMutation.mutate()}
                     disabled={step === "screening" || !address || !amount}
@@ -227,8 +227,8 @@ export function ScreenForm() {
                   >
                     <AnimatePresence mode="wait">
                       {step === "screening"
-                        ? <motion.span key="l" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} className="flex items-center gap-2"><Spinner /> Screening via AML engine…</motion.span>
-                        : <motion.span key="i" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}>Run Compliance Screen →</motion.span>
+                        ? <motion.span key="l" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2"><Spinner /> Screening via AML engine…</motion.span>
+                        : <motion.span key="i" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>Run Compliance Screen →</motion.span>
                       }
                     </AnimatePresence>
                   </Button>
@@ -243,17 +243,17 @@ export function ScreenForm() {
       <AnimatePresence>
         {screenResult && (
           <motion.div
-            initial={{ opacity:0, y:16, scale:0.98 }}
-            animate={{ opacity:1, y:0, scale:1 }}
-            exit={{ opacity:0, y:-10, scale:0.97 }}
-            transition={{ duration:0.38, ease:[0.32,0.72,0,1] }}
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.97 }}
+            transition={{ duration: 0.38, ease: [0.32, 0.72, 0, 1] }}
           >
             <Card className={cn(
               "border rounded-3xl overflow-hidden",
               isCleared && !isSettled ? "border-[#f5c45e]/25 bg-[#f5c45e]/4 " :
-              isBlocked              ? "border-red-500/20 bg-red-500/3"                :
-              isSettled              ? "border-[#f5c45e]/35 bg-[#f5c45e]/6 "  :
-                                       "border-orange-500/20 bg-orange-500/3"
+                isBlocked ? "border-red-500/20 bg-red-500/3" :
+                  isSettled ? "border-[#f5c45e]/35 bg-[#f5c45e]/6 " :
+                    "border-orange-500/20 bg-orange-500/3"
             )}>
               <CardHeader className="pb-3 pt-5 px-6">
                 <div className="flex items-center justify-between">
@@ -263,7 +263,7 @@ export function ScreenForm() {
               </CardHeader>
               <CardContent className="px-6 pb-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  {screenResult.did       && <MonoRow label="Resolved DID"  value={screenResult.did}          delay={0.05} />}
+                  {screenResult.did && <MonoRow label="Resolved DID" value={screenResult.did} delay={0.05} />}
                   {screenResult.amlProvider && <MonoRow label="AML Provider" value={screenResult.amlProvider} delay={0.10} />}
                   {screenResult.riskScore !== undefined && <MonoRow label="Risk Score" value={String(screenResult.riskScore)} delay={0.12} />}
                 </div>
@@ -282,19 +282,39 @@ export function ScreenForm() {
                   </div>
                 )}
 
+                {/* AI Risk Analysis */}
+                {screenResult.aiNarrative && (
+                  <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+                    <div className="rounded-2xl bg-purple-500/5 border border-purple-500/20 p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">🧠</span>
+                          <span className="text-[12px] uppercase tracking-widest text-purple-300 font-semibold">AI Risk Analysis</span>
+                        </div>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/10 border border-purple-500/20 text-purple-300">
+                          Gemini AI + Etherscan
+                        </span>
+                      </div>
+                      <p className="text-[13px] text-white/70 leading-relaxed">
+                        {screenResult.aiNarrative}
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* Attestation */}
                 {isCleared && screenResult.attestation && (
-                  <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.18 }}>
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.18 }}>
                     <Separator className="my-3" />
                     <p className="text-[12px] uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
                       <span className="w-4 h-px bg-[#f5c45e]/40 inline-block" />EIP-712 Attestation<span className="w-4 h-px bg-[#f5c45e]/40 inline-block" />
                     </p>
                     <div className="space-y-3 rounded-2xl bg-black/30 border border-[#f5c45e]/15 p-4">
-                      <MonoRow label="Subject"          value={screenResult.attestation.subject}       delay={0.22} copyable />
-                      <MonoRow label="AML Report Hash"  value={screenResult.attestation.amlReportHash} delay={0.26} dim />
-                      <MonoRow label="Expiry"           value={new Date(Number(screenResult.attestation.expiry)*1000).toISOString()} delay={0.30} />
-                      <MonoRow label="Nonce"            value={screenResult.attestation.nonce}         delay={0.34} dim />
-                      <MonoRow label="Signer"           value={screenResult.signer ?? screenResult.signerAddress ?? "—"} delay={0.38} copyable />
+                      <MonoRow label="Subject" value={screenResult.attestation.subject} delay={0.22} copyable />
+                      <MonoRow label="AML Report Hash" value={screenResult.attestation.amlReportHash} delay={0.26} dim />
+                      <MonoRow label="Expiry" value={new Date(Number(screenResult.attestation.expiry) * 1000).toISOString()} delay={0.30} />
+                      <MonoRow label="Nonce" value={screenResult.attestation.nonce} delay={0.34} dim />
+                      <MonoRow label="Signer" value={screenResult.signer ?? screenResult.signerAddress ?? "—"} delay={0.38} copyable />
                       <div className="pt-1">
                         <span className="text-[12px] uppercase tracking-widest text-muted-foreground">Signature</span>
                         <p className="text-[12px] font-mono text-[#f5c45e]/50 break-all mt-0.5 leading-relaxed">{screenResult.signature}</p>
@@ -307,10 +327,10 @@ export function ScreenForm() {
                 <AnimatePresence>
                   {isCleared && !isSettled && (
                     <motion.div
-                      initial={{ opacity:0, height:0 }}
-                      animate={{ opacity:1, height:"auto" }}
-                      exit={{ opacity:0, height:0 }}
-                      transition={{ delay:0.25, duration:0.35 }}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ delay: 0.25, duration: 0.35 }}
                     >
                       <Separator className="my-3" />
                       <div className="space-y-3">
@@ -325,7 +345,7 @@ export function ScreenForm() {
                         </div>
                         <AnimatePresence>
                           {!showKey ? (
-                            <motion.div key="show" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}>
+                            <motion.div key="show" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                               <Button
                                 onClick={() => setShowKey(true)}
                                 variant="outline"
@@ -335,7 +355,7 @@ export function ScreenForm() {
                               </Button>
                             </motion.div>
                           ) : (
-                            <motion.div key="key" initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }} className="space-y-3">
+                            <motion.div key="key" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-3">
                               <div className="space-y-1.5">
                                 <label className="text-[13px] uppercase tracking-widest text-muted-foreground">Institution Private Key</label>
                                 <Input
@@ -352,12 +372,12 @@ export function ScreenForm() {
                                 onClick={() => depositMutation.mutate()}
                                 disabled={isDepositing || !privateKey}
                                 className=" active:scale-95 w-full h-12 rounded-2xl font-semibold text-sm text-white transition-all"
-                                style={{ background: !privateKey ? "rgba(33,114,229,0.2)" : BLUE, border:"none" }}
+                                style={{ background: !privateKey ? "rgba(33,114,229,0.2)" : BLUE, border: "none" }}
                               >
                                 <AnimatePresence mode="wait">
                                   {isDepositing
-                                    ? <motion.span key="dl" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} className="flex items-center gap-2"><Spinner /> Submitting to PermissionedVault…</motion.span>
-                                    : <motion.span key="di" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}>Execute On-Chain Deposit →</motion.span>
+                                    ? <motion.span key="dl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2"><Spinner /> Submitting to PermissionedVault…</motion.span>
+                                    : <motion.span key="di" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>Execute On-Chain Deposit →</motion.span>
                                   }
                                 </AnimatePresence>
                               </Button>
@@ -372,11 +392,11 @@ export function ScreenForm() {
                 {/* Settlement result */}
                 <AnimatePresence>
                   {isSettled && depositResult && (
-                    <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.4 }}>
+                    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
                       <Separator className="my-3" />
                       <div className="rounded-2xl bg-[#f5c45e]/8 border border-[#f5c45e]/25 p-4 space-y-3">
                         <div className="flex items-center gap-2">
-                          <motion.span initial={{ scale:0 }} animate={{ scale:1 }} transition={{ type:"spring", stiffness:400, damping:15, delay:0.1 }} ><PartyPopper className="w-6 h-6 text-primary" /></motion.span>
+                          <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 15, delay: 0.1 }} ><PartyPopper className="w-6 h-6 text-primary" /></motion.span>
                           <p className="text-sm font-semibold text-[#f5c45e]">Deposit Settled On-Chain</p>
                         </div>
                         {depositResult.txHash && (
@@ -390,7 +410,7 @@ export function ScreenForm() {
                         )}
                         <div className="grid grid-cols-3 gap-3">
                           {depositResult.blockNumber && <div><p className="text-[12px] uppercase tracking-widest text-muted-foreground">Block</p><p className="text-xs font-mono text-white/80">#{depositResult.blockNumber}</p></div>}
-                          {depositResult.gasUsed     && <div><p className="text-[12px] uppercase tracking-widest text-muted-foreground">Gas Used</p><p className="text-xs font-mono text-white/80">{Number(depositResult.gasUsed).toLocaleString()}</p></div>}
+                          {depositResult.gasUsed && <div><p className="text-[12px] uppercase tracking-widest text-muted-foreground">Gas Used</p><p className="text-xs font-mono text-white/80">{Number(depositResult.gasUsed).toLocaleString()}</p></div>}
                           {depositResult.vaultBalance && <div><p className="text-[12px] uppercase tracking-widest text-muted-foreground">Vault Bal.</p><p className="text-xs font-mono text-[#f5c45e]">{Number(depositResult.vaultBalance).toLocaleString()} USDC</p></div>}
                         </div>
                       </div>
