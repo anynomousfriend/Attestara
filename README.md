@@ -271,6 +271,72 @@ packages/
 
 ---
 
+## Chainlink CRE Integration — File Map
+
+Attestara is built for the **Chainlink Convergence Hackathon**. The core concept is the **CRE (Compliance & Routing Engine)** — an off-chain middleware that orchestrates AML screening, EIP-712 attestation signing, and transaction relay between institutions and the permissioned vault.
+
+Below is every file that implements or interacts with the Chainlink CRE pattern:
+
+### Smart Contracts
+
+| File | Role |
+|------|------|
+| [`ComplianceAttestationVerifier.sol`](packages/contracts/contracts/ComplianceAttestationVerifier.sol) | On-chain EIP-712 verifier — recovers the CRE signer from attestation signatures, enforces nonce and expiry |
+| [`PermissionedVault.sol`](packages/contracts/contracts/PermissionedVault.sol) | Permissioned vault — every `deposit()` requires a valid CRE-signed `ComplianceAttestation` |
+| [`DIDRegistry.sol`](packages/contracts/contracts/DIDRegistry.sol) | DID registry — CRE resolves institution DIDs before AML screening |
+
+### CRE Engine (Off-Chain)
+
+| File | Role |
+|------|------|
+| [`index.ts`](packages/cre/src/index.ts) | Main CRE API server — all `/api/v1/compliance/*` endpoints, orchestrates screen → sign → simulate → deposit flow |
+| [`integration.test.ts`](packages/cre/src/integration.test.ts) | End-to-end integration tests for the CRE compliance pipeline |
+
+### CRE Services
+
+| File | Role |
+|------|------|
+| [`attestationSigner.ts`](packages/cre/src/services/attestationSigner.ts) | EIP-712 `ComplianceAttestation` struct signing with the CRE private key |
+| [`didResolver.ts`](packages/cre/src/services/didResolver.ts) | On-chain DID resolution via `DIDRegistry` contract |
+| [`txForwarder.ts`](packages/cre/src/services/txForwarder.ts) | Transaction relay — submits vault deposits on behalf of institutions |
+| [`simulationService.ts`](packages/cre/src/services/simulationService.ts) | Tenderly simulation pre-flight (Feature 1) |
+| [`timeTravelService.ts`](packages/cre/src/services/timeTravelService.ts) | Historical fork auditing (Feature 2) |
+| [`revocationService.ts`](packages/cre/src/services/revocationService.ts) | Real-time attestation revocation via nonce burning (Feature 3) |
+| [`scenarioRunner.ts`](packages/cre/src/services/scenarioRunner.ts) | Adversarial scenario playground (Feature 4) |
+| [`traceAnalyzer.ts`](packages/cre/src/services/traceAnalyzer.ts) | Gas trace decomposition (Feature 5) |
+
+### AML Screening Adapters
+
+| File | Role |
+|------|------|
+| [`aiAmlAdapter.ts`](packages/cre/src/adapters/aiAmlAdapter.ts) | AI Oracle — Etherscan + Gemini AI wallet analysis (Feature 6) |
+| [`mockAmlAdapter.ts`](packages/cre/src/adapters/mockAmlAdapter.ts) | Mock AML server adapter (development fallback) |
+| [`chainalysisAdapter.ts`](packages/cre/src/adapters/chainalysisAdapter.ts) | Real Chainalysis KYT adapter (production) |
+
+### Deploy & Setup Scripts
+
+| File | Role |
+|------|------|
+| [`deploy.ts`](packages/contracts/scripts/deploy.ts) | Deploys all 3 CRE contracts to Tenderly Virtual Sepolia |
+| [`setupFork.ts`](packages/contracts/scripts/setupFork.ts) | Creates Tenderly Virtual Sepolia TestNet and funds deployer |
+| [`setupDepositor.ts`](packages/contracts/scripts/setupDepositor.ts) | Funds depositor with USDC and registers their DID |
+| [`hardhat.config.ts`](packages/contracts/hardhat.config.ts) | Hardhat config with `@tenderly/hardhat-tenderly` plugin and `virtual_sepolia` network |
+
+### Frontend (CRE Client)
+
+| File | Role |
+|------|------|
+| [`api.ts`](packages/frontend/src/api.ts) | Typed API client — calls all CRE endpoints |
+| [`TransactionStepper.tsx`](packages/frontend/src/components/TransactionStepper.tsx) | Step-by-step CRE compliance flow UI |
+| [`SimulationPreview.tsx`](packages/frontend/src/components/SimulationPreview.tsx) | Simulation pre-flight result card |
+| [`AMLLogs.tsx`](packages/frontend/src/components/AMLLogs.tsx) | CRE compliance audit log table |
+| [`AuditPanel.tsx`](packages/frontend/src/components/AuditPanel.tsx) | Time-travel comparison modal |
+| [`ScenariosTab.tsx`](packages/frontend/src/components/ScenariosTab.tsx) | Adversarial scenario cards |
+| [`GasAnalysis.tsx`](packages/frontend/src/components/GasAnalysis.tsx) | Gas trace call-tree and category bars |
+| [`LandingPage.tsx`](packages/frontend/src/pages/LandingPage.tsx) | Marketing landing page with CRE architecture flow |
+
+---
+
 ## Quick Start — End-to-End Setup
 
 ### Prerequisites
