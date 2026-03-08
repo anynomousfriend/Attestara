@@ -1,12 +1,9 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
-import * as tenderly from "@tenderly/hardhat-tenderly";
 import * as dotenv from "dotenv";
 import * as path from "path";
 
-dotenv.config({ path: path.resolve(__dirname, "../../.env") });
-
-tenderly.setup({ automaticVerifications: true });
+dotenv.config({ path: path.resolve(__dirname, "../../.env"), override: true });
 
 const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
@@ -23,8 +20,12 @@ const config: HardhatUserConfig = {
   },
   networks: {
     virtual_sepolia: {
-      url: process.env.TENDERLY_VIRTUAL_SEPOLIA_RPC || "https://virtual.sepolia.rpc.tenderly.co/21670175-9b59-425d-acf6-cc95e7182684",
-      chainId: 11155111,
+      url: process.env.TENDERLY_VIRTUAL_SEPOLIA_RPC || "https://virtual.sepolia.eu.rpc.tenderly.co/40d1fc66-93b4-4a0e-9331-df906ca3cf6f",
+      // chainId: 11155111,
+      accounts: DEPLOYER_PRIVATE_KEY ? [DEPLOYER_PRIVATE_KEY] : [],
+    },
+    my_fork: {
+      url: process.env.TENDERLY_VIRTUAL_SEPOLIA_RPC || "https://virtual.sepolia.eu.rpc.tenderly.co/40d1fc66-93b4-4a0e-9331-df906ca3cf6f",
       accounts: DEPLOYER_PRIVATE_KEY ? [DEPLOYER_PRIVATE_KEY] : [],
     },
   },

@@ -1,5 +1,6 @@
 {
   "name": "@attestara/frontend",
+  "type": "module",
   "version": "1.0.0",
   "description": "Institutional compliance portal — React dashboard for pending queue, AML logs, and on-chain settlement",
   "private": true,

@@ -15,7 +15,7 @@ import * as dotenv from "dotenv";
 const ENV_PATH      = path.resolve(__dirname, "../../../.env");
 const DEPLOYED_PATH = path.resolve(__dirname, "../../../deployed.json");
 
-dotenv.config({ path: ENV_PATH });
+dotenv.config({ path: ENV_PATH, override: true });
 
 function updateEnvFile(key: string, value: string) {
   let content = fs.existsSync(ENV_PATH) ? fs.readFileSync(ENV_PATH, "utf8") : "";

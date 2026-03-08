@@ -11,15 +11,16 @@
 2. [Architecture at a Glance](#2-architecture-at-a-glance)
 3. [The Three Smart Contracts](#3-the-three-smart-contracts)
 4. [The Off-Chain Services](#4-the-off-chain-services)
-5. [Step-by-Step: What Happens When You Submit the Form](#5-step-by-step-what-happens-when-you-submit-the-form)
-6. [The EIP-712 Attestation Explained](#6-the-eip-712-attestation-explained)
-7. [The ZK Privacy Model](#7-the-zk-privacy-model)
-8. [Compliance Screening Rules](#8-compliance-screening-rules)
-9. [What the Frontend Shows](#9-what-the-frontend-shows)
-10. [Running the Demo](#10-running-the-demo)
-11. [Integration Test Walkthrough](#11-integration-test-walkthrough)
-12. [Security Properties](#12-security-properties)
-13. [Production vs Demo Differences](#13-production-vs-demo-differences)
+5. [AI Compliance Oracle — How It Works](#5-ai-compliance-oracle--how-it-works)
+6. [Step-by-Step: What Happens When You Submit the Form](#6-step-by-step-what-happens-when-you-submit-the-form)
+7. [The EIP-712 Attestation Explained](#7-the-eip-712-attestation-explained)
+8. [The ZK Privacy Model](#8-the-zk-privacy-model)
+9. [Compliance Screening Rules](#9-compliance-screening-rules)
+10. [What the Frontend Shows](#10-what-the-frontend-shows)
+11. [Running the Demo](#11-running-the-demo)
+12. [Integration Test Walkthrough](#12-integration-test-walkthrough)
+13. [Security Properties](#13-security-properties)
+14. [Production vs Demo Differences](#14-production-vs-demo-differences)
 
 ---
 
@@ -44,9 +45,10 @@ The system is a monorepo with three layers:
 
 | Layer | Technology | Purpose |
 |---|---|---|
-| Smart Contracts | Solidity on Tenderly fork (Ethereum mainnet) | Identity, attestation verification, vault |
+| Smart Contracts | Solidity on Tenderly Virtual Sepolia (`chainId: 11155111`) | Identity, attestation verification, vault |
 | CRE Engine | TypeScript / Express.js (port 4000) | AML orchestration, EIP-712 signing, tx relay |
-| Mock AML Server | TypeScript / Express.js (port 4001) | Simulates Chainalysis KYT API |
+| AI Oracle | Etherscan API + Google Gemini AI | Primary AML adapter — real wallet analysis + AI risk narrative |
+| Mock AML Server | TypeScript / Express.js (port 4001) | Fallback AML server — simulates Chainalysis KYT API |
 | Frontend | React / Vite / TailwindCSS (port 3000) | UI dashboard for demo |
 
 ---
@@ -62,29 +64,33 @@ The system is a monorepo with three layers:
                              ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    CRE Engine (port 4000)                            │
-│  ┌──────────────┐  ┌─────────────────┐  ┌────────────────────────┐ │
-│  │ DID Resolver │  │  AML Adapter    │  │  Attestation Signer    │ │
-│  │ (on-chain)   │  │  (mock/real)    │  │  (EIP-712, secp256k1)  │ │
-│  └──────┬───────┘  └────────┬────────┘  └───────────┬────────────┘ │
-└─────────┼───────────────────┼────────────────────────┼─────────────┘
-          │                   │                        │
-          │ eth_call          │ HTTP GET               │ signTypedData
-          ▼                   ▼                        ▼
-┌─────────────────┐  ┌────────────────┐   ┌───────────────────────┐
-│  DIDRegistry    │  │  Mock AML      │   │  CRE Signer Wallet    │
-│  .sol           │  │  Server        │   │  (.cre-signer.key)    │
-│  (on-chain)     │  │  (port 4001)   │   └───────────────────────┘
-└─────────────────┘  └────────────────┘
+│  ┌──────────────┐  ┌──────────────────────────────────────────────┐ │
+│  │ DID Resolver │  │           AML Adapter Pipeline               │ │
+│  │ (on-chain)   │  │  ┌─────────────────────────────────────────┐ │ │
+│  └──────┬───────┘  │  │ 1. AI Oracle (primary)                  │ │ │
+│         │          │  │    Etherscan → tx history (last 50)     │ │ │
+│         │          │  │    Gemini AI → risk score + narrative   │ │ │
+│         │          │  ├─────────────────────────────────────────┤ │ │
+│         │          │  │ 2. Chainalysis KYT (if key set)         │ │ │
+│         │          │  ├─────────────────────────────────────────┤ │ │
+│         │          │  │ 3. Mock AML server (fallback, port 4001)│ │ │
+│         │          │  └─────────────────────────────────────────┘ │ │
+│         │          └──────────────────┬───────────────────────────┘ │
+│         │                             │                              │
+│  ┌──────┴───────────────────────────-─┴──────────────────────────┐  │
+│  │              Attestation Signer (EIP-712, secp256k1)           │  │
+│  └────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
           │
-          │  eth_sendRawTransaction
+          │ eth_call / eth_sendRawTransaction
           ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                   Tenderly Mainnet Fork (chainId: 1)                 │
+│            Tenderly Virtual Sepolia (chainId: 11155111)              │
 │  ┌────────────────────────────────────────────────────────────────┐ │
 │  │               PermissionedVault.sol                            │ │
 │  │  1. require(didRegistry.isRegistered(msg.sender))              │ │
 │  │  2. verifier.verifyAttestation(attestation, signature, sender) │ │
-│  │  3. IERC20(usdc).transferFrom(sender, vault, amount)           │ │
+│  │  3. IERC20(asset).transferFrom(sender, vault, amount)          │ │
 │  └────────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -93,7 +99,7 @@ The system is a monorepo with three layers:
 
 ## 3. The Three Smart Contracts
 
-All three are deployed on a **Tenderly mainnet fork** — a private copy of Ethereum mainnet that runs real EVM logic against real contract state (USDC, Aave, etc.) but with no real money at stake.
+All three are deployed on a **Tenderly Virtual Sepolia TestNet** (`chainId: 11155111`) via `@tenderly/hardhat-tenderly` with automatic contract verification. Contracts run on a sandboxed Sepolia fork — real EVM logic, no real money.
 
 ### 3.1 DIDRegistry.sol
 **Address**: `0xccA4A4c8A03C7Dd156E5Fc2aeD4B9D911180797F`
@@ -193,17 +199,20 @@ The CRE (Compliance & Routing Engine) is a TypeScript/Express.js server running 
 
 **Startup sequence**:
 1. Loads environment variables (`TENDERLY_FORK_RPC`, `VAULT_ADDRESS`, `CRE_SIGNER_PRIVATE_KEY`, etc.)
-2. Creates `ethers.JsonRpcProvider` connected to the Tenderly fork
+2. Creates `ethers.JsonRpcProvider` connected to the Tenderly Virtual Sepolia RPC
 3. Checks for `CRE_SIGNER_PRIVATE_KEY` in `.env`:
    - If present: uses it directly
    - If absent: checks `.cre-signer.key` file
    - If neither: **generates a fresh secp256k1 key pair**, saves it to `.cre-signer.key` (chmod 0600), and logs the address for the operator to add to `.env` and redeploy contracts with
-4. Instantiates three service objects:
+4. Selects AML adapter (priority order):
+   - `AIAmlAdapter` — if both `ETHERSCAN_API_KEY` and `GEMINI_API_KEY` are set (**default when configured**)
+   - `ChainalysisAdapter` — if `CHAINALYSIS_API_KEY` is set
+   - `MockAMLAdapter` — fallback when no keys are present
+5. Instantiates service objects:
    - `DIDResolver` — thin wrapper around the on-chain `DIDRegistry`
-   - `AMLAdapter` — either `MockAMLAdapter` or `ChainalysisAdapter` (depends on `CHAINALYSIS_API_KEY`)
    - `AttestationSigner` — holds the CRE signing key
    - `TxForwarder` — handles on-chain execution
-5. Starts Express server
+6. Starts Express server
 
 **In-memory state** (resets on restart):
 ```typescript
@@ -264,9 +273,29 @@ Executes the on-chain deposit on behalf of the institution. In production, the i
 4. Call `vault.deposit(amount, tuple, signature)` and wait for receipt
 5. Read final `vault.balanceOf(institution)` and return result
 
-### 4.5 Mock AML Server — `packages/mock-aml/src/index.ts`
+### 4.5 AI Compliance Oracle — `packages/cre/src/adapters/aiAmlAdapter.ts`
 
-Standalone Express.js server on **port 4001** that simulates the Chainalysis KYT (Know Your Transaction) API. Implements the same endpoint structure as the real Chainalysis API so the CRE's adapter code is production-compatible with zero changes.
+The primary AML adapter when `ETHERSCAN_API_KEY` and `GEMINI_API_KEY` are both configured. Replaces rule-based screening with intelligent wallet analysis powered by real blockchain data and large language model reasoning.
+
+**Two-stage pipeline:**
+1. **Etherscan** — fetches the last 50 normal transactions + ERC-20 token transfers for the wallet
+2. **Gemini AI** — receives a structured prompt containing the transaction summary, counterparty patterns, protocol interactions, and known-address detection; returns:
+   - `riskScore` (0–100)
+   - `status` (`CLEARED` / `HIGH_RISK` / `BLOCKED`)
+   - `alerts[]` (e.g. `MIXER_INTERACTION`, `EXCHANGE_DEPOSIT`)
+   - `narrative` — a human-readable explanation of the risk assessment
+
+**Static pre-filters** (applied before AI call, for demo compatibility):
+- Address starts with `0x000` → `BLOCKED` (100) — OFAC pattern
+- Address contains `dead` or `beef` → `HIGH_RISK` (75) — mixer pattern
+- Amount > 10,000,000 USDC → upgrades to `HIGH_RISK`
+- Everything else → handed to Gemini for analysis
+
+**Fallback**: If Etherscan or Gemini APIs are unreachable, the adapter returns a safe `CLEARED` result with a `FALLBACK` flag — static demo rules remain functional.
+
+### 4.6 Mock AML Server — `packages/mock-aml/src/index.ts`
+
+Standalone Express.js server on **port 4001**. Used automatically as fallback when AI keys are not configured. Simulates the Chainalysis KYT API structure so the CRE adapter code is production-compatible with zero changes.
 
 **Screening rules** (applied in order):
 1. Address starts with `0x000` → `BLOCKED` (risk: 100) — simulates OFAC sanctions match
@@ -276,7 +305,68 @@ Standalone Express.js server on **port 4001** that simulates the Chainalysis KYT
 
 ---
 
-## 5. Step-by-Step: What Happens When You Submit the Form
+## 5. AI Compliance Oracle — How It Works
+
+> **Set `ETHERSCAN_API_KEY` + `GEMINI_API_KEY` in `.env` to activate.** Without these, the system falls back to the Mock AML server automatically.
+
+```
+Screening Request
+     │
+     ▼
+┌─────────────────────────────────────────────────────┐
+│ Static Pre-Filters (always applied first)            │
+│  0x000... → BLOCKED (OFAC pattern)                   │
+│  dead/beef → HIGH_RISK (mixer pattern)               │
+│  amount > $10M → HIGH_RISK                           │
+└──────────────────────────┬──────────────────────────┘
+                           │ passes pre-filters
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│ Etherscan API                                        │
+│  GET /api?module=account&action=txlist&address=0x…   │
+│  → last 50 normal txs                               │
+│  GET /api?module=account&action=tokentx&address=0x…  │
+│  → last 50 ERC-20 token transfers                   │
+└──────────────────────────┬──────────────────────────┘
+                           │ transaction history
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│ Gemini AI (gemini-1.5-flash)                         │
+│  Prompt includes:                                    │
+│   - wallet address                                   │
+│   - total tx count, first/last activity              │
+│   - top counterparties (known exchanges, protocols)  │
+│   - token transfer volume                            │
+│   - known-risk patterns (mixers, bridges, etc.)      │
+│                                                      │
+│  Returns:                                            │
+│   - riskScore: 0–100                                 │
+│   - status: CLEARED / HIGH_RISK / BLOCKED            │
+│   - alerts: ["MIXER_INTERACTION", ...]               │
+│   - narrative: "This wallet has 47 txs over 6 months │
+│     primarily interacting with Uniswap V3..."        │
+└──────────────────────────┬──────────────────────────┘
+                           │ AMLScreeningResult + aiNarrative
+                           ▼
+     CRE signs EIP-712 attestation
+```
+
+### What the Narrative Looks Like
+
+The `aiNarrative` field appears in frontend UI as a purple **🧠 AI Risk Analysis** card in three places:
+- **ScreenForm** — after the screening result badge
+- **TransactionStepper** — in the attestation review step
+- **AML Logs** — 🧠 tooltip icon on rows screened by AI
+
+Example AI narrative for a clean wallet:
+> *"This wallet shows 47 transactions over 6 months, primarily interacting with Uniswap V3 (DEX swaps) and Aave V2 (lending). No mixer interactions detected. Counterparties are limited to well-known DeFi protocols and CEX withdrawal addresses. Token transfers consist mainly of USDC and ETH with no privacy-coin activity. Risk assessment: LOW."*
+
+Example AI narrative for a high-risk wallet:
+> *"This wallet has 12 transactions, including 3 interactions with Tornado Cash (ETH mixing), and 2 transfers from a flagged darknet market deposit address. Transaction volume spiked abruptly 30 days ago with no prior activity. Risk assessment: HIGH — mixer interactions detected."*
+
+---
+
+## 6. Step-by-Step: What Happens When You Submit the Form
 
 This is the full journey from the moment you click **"Run Compliance Screen"** or **"Execute On-Chain Deposit"** in the UI, to the final on-chain settlement. Nothing is skipped.
 
@@ -353,38 +443,57 @@ The contract does a mapping lookup `_documents[address]` and returns:
 
 If the address is not registered, `did` stays `null` in the log. The vault will reject unregistered depositors on-chain — the CRE surfaces this early as an informational hint only.
 
-#### Step 1.3 — AML Screening (HTTP GET to Mock AML)
+#### Step 1.3 — AML Screening (AI Oracle or Mock Fallback)
 
-The CRE calls `MockAMLAdapter.screenAddress(address, amount)`, which makes:
+**Path A — AI Oracle (when `ETHERSCAN_API_KEY` + `GEMINI_API_KEY` are set):**
+
+The CRE calls `AIAmlAdapter.screenAddress(address, amount)`:
 
 ```
-GET http://localhost:4001/v1/address/0x742d35Cc6634C0532925a3b844Bc454e4438f44e/risk?amount=50000
+① GET https://api.etherscan.io/api?module=account&action=txlist
+              &address=0x742d35Cc6634C0532925a3b844Bc454e4438f44e
+              &apikey=YOUR_KEY
+   → returns last 50 transactions (timestamp, counterparty, value, method)
+
+② GET https://api.etherscan.io/api?module=account&action=tokentx
+              &address=0x742d35Cc6634C0532925a3b844Bc454e4438f44e
+              &apikey=YOUR_KEY
+   → returns last 50 ERC-20 token transfers
+
+③ POST https://generativelanguage.googleapis.com/...
+   Body: structured prompt with transaction summary, counterparties, protocol tags
+   → Gemini returns: riskScore, status, alerts[], narrative
 ```
 
-**Inside the Mock AML server:**
-- Checks address against rules (see Section 8)
-- Returns JSON:
+Gemini AI response:
 ```json
 {
-  "address":   "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
   "status":    "CLEARED",
-  "riskScore": 7,
+  "riskScore": 12,
   "alerts":    [],
-  "checkedAt": "2026-03-02T16:19:13.123Z"
+  "narrative": "This wallet has 47 transactions over 6 months, primarily interacting with Uniswap V3 and Aave V2. No mixer interactions detected. Risk assessment: LOW.",
+  "provider":  "ai-oracle"
 }
 ```
 
-**Back in the CRE adapter — report hashing:**
+**Path B — Mock AML (fallback, no API keys needed):**
+
+```
+GET http://localhost:4001/v1/address/0x742d35Cc6634C0532925a3b844Bc454e4438f44e/risk?amount=50000
+→ { "status": "CLEARED", "riskScore": 7, "alerts": [], "provider": "mock-aml" }
+```
+
+**Back in the CRE adapter — report hashing (applies to both paths):**
 
 The adapter builds a deterministic report string from the response:
 ```json
 {
   "address":   "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
   "status":    "CLEARED",
-  "riskScore": 7,
+  "riskScore": 12,
   "alerts":    [],
   "checkedAt": "2026-03-02T16:19:13.123Z",
-  "provider":  "mock-aml"
+  "provider":  "ai-oracle"
 }
 ```
 
@@ -393,7 +502,7 @@ Then computes:
 reportHash = keccak256(utf8Bytes(JSON.stringify(report)))
 ```
 
-This `bytes32` hash is the **only** representation of the AML report that will ever touch the blockchain. The full report stays on the CRE server.
+This `bytes32` hash is the **only** representation of the AML report that will ever touch the blockchain. The full report — including the AI narrative — stays on the CRE server.
 
 #### Step 1.4 — Blocked / High Risk Path
 
@@ -438,24 +547,25 @@ Audit log updated (`amlStatus = "CLEARED"`, `status = "CLEARED"`). HTTP **200**:
 
 ```json
 {
-  "logId":      "log_1709394287123",
-  "status":     "CLEARED",
-  "did":        "did:zk:0x742d35cc6634c0532925a3b844bc454e4438f44e",
-  "amlProvider":"mock-aml",
-  "riskScore":  7,
+  "logId":       "log_1709394287123",
+  "status":      "CLEARED",
+  "did":         "did:zk:0x742d35cc6634c0532925a3b844bc454e4438f44e",
+  "amlProvider": "ai-oracle",
+  "riskScore":   12,
   "attestation": {
     "subject":       "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
     "amlReportHash": "0x4f8b2a...",
     "expiry":        1709395087,
     "nonce":         "72389471928374918273",
-    "amlProvider":   "mock-aml"
+    "amlProvider":   "ai-oracle"
   },
   "signature":     "0xa3f9...",
-  "signerAddress": "0xE0A600Af3bd8A92eF9890859b092572aC7D512D1"
+  "signerAddress": "0xE0A600Af3bd8A92eF9890859b092572aC7D512D1",
+  "aiNarrative":   "This wallet has 47 transactions over 6 months, primarily interacting with Uniswap V3 and Aave V2. No mixer interactions detected. Risk assessment: LOW."
 }
 ```
 
-The frontend shows the full attestation: subject, AML hash, 15-minute expiry countdown, nonce, signature.
+The frontend shows the full attestation: subject, AML hash, 15-minute expiry countdown, nonce, signature, and — when AI Oracle is active — the **🧠 AI Risk Analysis** card with the Gemini narrative.
 
 ---
 
@@ -574,7 +684,7 @@ The frontend success screen shows a Tenderly dashboard link — click it to insp
 
 ---
 
-## 6. The EIP-712 Attestation Explained
+## 7. The EIP-712 Attestation Explained
 
 EIP-712 is the Ethereum standard for structured data signing. It solves a critical problem: raw `eth_sign` produces a signature over arbitrary bytes with no human-readable context — making it vulnerable to phishing. EIP-712 adds:
 
@@ -620,7 +730,7 @@ The resulting `digest` is signed with `secp256k1` using the CRE's private key. O
 
 ---
 
-## 7. The ZK Privacy Model
+## 8. The ZK Privacy Model
 
 The name "Zero-Knowledge" refers to the **data minimisation** privacy property — not ZK-SNARKs. The system achieves the cryptographic minimum: the blockchain proves that screening occurred and was approved, without revealing what the screening found.
 
@@ -657,9 +767,26 @@ A regulator with access to the CRE's audit log can verify that a specific on-cha
 
 ---
 
-## 8. Compliance Screening Rules
+## 9. Compliance Screening Rules
 
-### Mock AML Rules (applied in order)
+### Adapter Priority
+
+| Priority | Adapter | Activated by |
+|---|---|---|
+| 1 (highest) | **AI Oracle** | `ETHERSCAN_API_KEY` + `GEMINI_API_KEY` both set |
+| 2 | **Chainalysis KYT** | `CHAINALYSIS_API_KEY` set |
+| 3 (fallback) | **Mock AML** | No keys configured |
+
+### AI Oracle Rules (static pre-filters applied before Gemini)
+
+| Condition | Status | Risk Score | Alerts |
+|---|---|---|---|
+| Address starts with `0x000` | `BLOCKED` | 100 | `OFAC_SANCTIONS_MATCH`, `HIGH_RISK_ENTITY` |
+| Address contains `dead` or `beef` | `HIGH_RISK` | 75 | `MIXER_INTERACTION`, `DARKNET_MARKET_EXPOSURE` |
+| Amount > 10,000,000 USDC | Upgrades to `HIGH_RISK` | — | `LARGE_TRANSACTION_THRESHOLD_EXCEEDED` |
+| All other addresses | Analysed by **Gemini AI** | 0–100 (AI-determined) | AI-detected |
+
+### Mock AML Rules (applied in order, fallback only)
 
 | Condition | Status | Risk Score | Alerts |
 |---|---|---|---|
@@ -679,9 +806,16 @@ A regulator with access to the CRE's audit log can verify that a specific on-cha
 
 ---
 
-## 9. What the Frontend Shows
+## 10. What the Frontend Shows
 
 The frontend at `http://localhost:3000` has four tabs:
+
+### Dashboard Tab — AI Oracle Integration
+
+When `amlProvider === "ai-oracle"`, additional UI elements appear:
+- **🧠 AI Risk Analysis card** (purple) displayed after the screening result badge in the ScreenForm
+- **🧠 AI Risk Analysis section** inside the TransactionStepper attestation review step
+- **🧠 icon** on AI-screened rows in the AML Logs table (tooltip with full narrative)
 
 ### Dashboard Tab
 - **Hero Stats** (top row): Total vault deposits (animated count-up), addresses cleared today, in AML queue, blocked today — all live-polling
@@ -712,7 +846,29 @@ In-flight transactions between submission and settlement. Animated shimmer progr
 
 ---
 
-## 10. Running the Demo
+## 11. Running the Demo
+
+### Enable AI Oracle (Recommended)
+
+Before starting, set API keys in `.env` to activate Gemini AI analysis:
+
+```bash
+# Free keys:
+# - Etherscan: https://etherscan.io/myapikey
+# - Gemini: https://aistudio.google.com/apikey
+ETHERSCAN_API_KEY=your_etherscan_key
+GEMINI_API_KEY=your_gemini_key
+```
+
+The CRE auto-detects these on startup and logs:
+```
+🧠 AI Compliance Oracle active (Etherscan + Gemini)
+```
+
+Without keys:
+```
+🟡 Using Mock AML server (set ETHERSCAN_API_KEY + GEMINI_API_KEY for AI Oracle)
+```
 
 ### Start All Services
 
@@ -784,7 +940,7 @@ curl -s http://localhost:4000/api/v1/vault/stats | jq
 
 ---
 
-## 11. Integration Test Walkthrough
+## 12. Integration Test Walkthrough
 
 ```bash
 npm run integration:test
@@ -814,7 +970,7 @@ The test suite runs 13 automated tests proving the complete flow:
 
 ---
 
-## 12. Security Properties
+## 13. Security Properties
 
 | Property | Mechanism | Enforced At |
 |---|---|---|
@@ -833,12 +989,13 @@ The test suite runs 13 automated tests proving the complete flow:
 
 ---
 
-## 13. Production vs Demo Differences
+## 14. Production vs Demo Differences
 
 | Aspect | Demo | Production |
 |---|---|---|
-| AML Provider | Mock server (localhost:4001) | Real Chainalysis KYT API |
-| Network | Tenderly mainnet fork | Ethereum mainnet / L2 |
+| AML Provider (primary) | **AI Oracle** — Etherscan + Gemini AI (when keys set) | Real Chainalysis KYT or proprietary AI model |
+| AML Provider (fallback) | Mock server (localhost:4001) | N/A — production always has keys |
+| Network | Tenderly Virtual Sepolia (`chainId: 11155111`) | Ethereum mainnet / L2 |
 | Private key handling | Sent to local CRE | Institution signs locally, submits own tx |
 | DID registration | Manual / test script | Institutional onboarding flow |
 | CRE deployment | Single process (localhost) | HSM-secured enclave, multi-region |

@@ -1,7 +1,7 @@
 {
-  "network": "tenderly",
+  "network": "my_fork",
   "chainId": "1",
-  "deployedAt": "2026-03-02T14:11:08.966Z",
+  "deployedAt": "2026-03-07T19:25:57.882Z",
   "deployer": "0xE8A457Ce1Ab8659a6410474dB5f1c6b070b98372",
   "creSignerAddress": "0xE0A600Af3bd8A92eF9890859b092572aC7D512D1",
   "contracts": {

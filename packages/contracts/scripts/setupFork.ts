@@ -72,12 +72,12 @@ async function main() {
       slug: `attestara-sepolia-${Date.now()}`,
       display_name: "Attestara Sepolia Fork",
       fork_config: {
-        network_id: 11155111,        // Sepolia testnet
+        network_id: 1,        // Mainnet
         block_number: "latest",
       },
       virtual_network_config: {
         chain_config: {
-          chain_id: 11155111,
+          chain_id: 1,
         },
       },
       sync_state_config: {
@@ -116,7 +116,7 @@ async function main() {
   updateEnvFile("TENDERLY_FORK_RPC", adminRpc);    // backward compat for CRE
   updateEnvFile("TENDERLY_FORK_ID", forkId);
   updateEnvFile("TENDERLY_PUBLIC_RPC", publicRpc);
-  updateEnvFile("CHAIN_ID", "11155111");
+  updateEnvFile("CHAIN_ID", "1");
 
   console.log("📝 .env updated with Sepolia fork RPC and addresses");
   console.log("\n🎉 Tenderly Sepolia fork setup complete!");

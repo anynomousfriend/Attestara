@@ -6,7 +6,7 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "fork:setup": "hardhat run scripts/setupFork.ts --network virtual_sepolia",
-    "deploy": "hardhat run scripts/deploy.ts --network virtual_sepolia",
+    "deploy": "hardhat run scripts/deploy.ts --network my_fork",
     "deploy:local": "hardhat run scripts/deploy.ts --network hardhat"
   },
   "devDependencies": {

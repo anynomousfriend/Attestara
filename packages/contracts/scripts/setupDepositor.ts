@@ -14,7 +14,7 @@ import * as dotenv from "dotenv";
 import * as path from "path";
 import * as fs from "fs";
 
-dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../../.env"), override: true });
 
 // Known USDC whale on mainnet (Circle's treasury / large holder)
 const USDC_WHALE      = "0x55FE002aefF02F77364de339a1292923A15844B8"; // Circle

@@ -301,7 +301,7 @@ Where:
 - narrative: clear, professional 2-3 sentence compliance summary`;
 
         const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.geminiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.geminiKey}`,
             {
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: {
