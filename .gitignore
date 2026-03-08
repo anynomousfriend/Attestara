@@ -34,3 +34,5 @@ Thumbs.db
 # ── Misc ──────────────────────────────────────────────────────────────────────
 coverage/
 .nyc_output/
+run.sh
+submission.md
