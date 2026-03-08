@@ -144,14 +144,61 @@ We are Attestara. And we are just getting started."
 
 ---
 
+## 🛠️ End-to-End Project Setup (From Scratch)
+
+Run these commands in order to get Attestara fully running from a fresh clone.
+
+> **All commands are run from the project root directory (`Attestara/`).**
+
+```bash
+# 0. Navigate to the project root
+cd Attestara
+# 1. Install all dependencies (root + all workspaces)
+npm install
+
+# 2. Create a Tenderly Virtual TestNet fork (auto-updates .env with RPC URLs)
+npm run fork:setup
+
+# 3. Deploy smart contracts (DIDRegistry, ComplianceAttestationVerifier, PermissionedVault)
+npm run deploy
+
+# 4. Start all services concurrently (Mock AML, CRE, Frontend)
+npm run dev
+```
+
+**After startup, you should see:**
+| Service                          | URL                      |
+|----------------------------------|--------------------------|
+| Mock AML Server                  | http://localhost:4001    |
+| CRE (Compliance & Routing Engine)| http://localhost:4000    |
+| Frontend (Vite + React)          | http://localhost:3001    |
+
+**Verify:** Open http://localhost:3001 in your browser → you should see the Attestara landing page.
+
+> **Note:** Make sure your `.env` file has valid `ETHERSCAN_API_KEY` and `GEMINI_API_KEY` for AI-powered compliance analysis. Without them, the system falls back to data-driven analysis using Etherscan transaction history.
+
+---
+
 ## 📋 Copy-Paste Demo Execution Guide
 
 *Keep this open on a second monitor or notepad to quickly copy-paste during your screencast.*
 
+### 🔄 Pre-Demo Reset (If Tenderly quota is exhausted)
+If you hit Tenderly's API quota limit, reset the fork and redeploy:
+```bash
+# 1. Stop the dev server (Ctrl+C)
+# 2. Create a fresh Tenderly fork (auto-updates .env)
+npm run fork:setup
+# 3. Redeploy contracts to the new fork
+npm run deploy
+# 4. Restart everything
+npm run dev
+```
+
 ### Step 1: The Engine Room (CLI)
 - **Action:** Open terminal and run:
   ```bash
-  npm run dev -w packages/cre
+  npm run dev
   ```
 - **Action:** Have your IDE open to show the `attestationSigner.ts` and `ComplianceAttestationVerifier.sol` snippets (or use the slides/screen to show the code blocks provided in Act 2.5).
 
@@ -174,7 +221,11 @@ We are Attestara. And we are just getting started."
 ### Step 4: Simulation & Execution
 - **Action:** Wait for the Tenderly Simulation card to appear. Highlight it with your mouse.
 - **Talking Point:** Explain that this is a pre-flight check guaranteeing zero wasted gas.
-- **Action:** Click **"Execute Deposit"**
+- **Deployer Private Key (paste when prompted):**
+  ```text
+  0x0434c7ec2fbe666ada097860fe7cf1517371c7c0de46e770c5ed43fce286d5bf
+  ```
+- **Action:** Click **"Confirm & Enter Private Key"** → paste the key above → click **"Execute →"**
 - **Talking Point:** Emphasize that only the EIP-712 signature and hash go on-chain, never the personal data.
 
 ### Step 5: Time-Travel Audit (AML Logs)

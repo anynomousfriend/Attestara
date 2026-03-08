@@ -88,6 +88,8 @@ export class AIAMLAdapter {
             aiResult = await this._callGemini(address, amount, txSummary, etherscanData);
         } catch (err: any) {
             console.warn("⚠️  Gemini AI analysis failed (non-fatal):", err.message);
+            // Build a data-driven fallback instead of returning nulls
+            aiResult = this._buildDataDrivenFallback(address, amount, txSummary);
         }
 
         // ── Build result ──────────────────────────────────────────────────────
@@ -255,7 +257,7 @@ export class AIAMLAdapter {
         };
     }
 
-    // ── Private: Gemini AI call ─────────────────────────────────────────────
+    // ── Private: Gemini AI call with retry ──────────────────────────────────
     private async _callGemini(
         address: string,
         amount: number,
@@ -300,20 +302,28 @@ Where:
 - alerts: array of alert codes like "MIXER_INTERACTION", "RAPID_FUND_CYCLING", "NO_TRANSACTION_HISTORY", "SHORT_ACCOUNT_AGE", "SANCTIONED_ENTITY_PROXIMITY"
 - narrative: clear, professional 2-3 sentence compliance summary`;
 
-        const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.geminiKey}`,
-            {
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                    temperature: 0.2,
-                    maxOutputTokens: 300,
-                    responseMimeType: "application/json",
-                },
+        const requestBody = {
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+                temperature: 0.2,
+                maxOutputTokens: 300,
+                responseMimeType: "application/json",
             },
-            { timeout: 15000 },
+        };
+
+        // Retry with exponential backoff (handles 429 rate limits)
+        const response = await this._retryWithBackoff(() =>
+            axios.post(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.geminiKey}`,
+                requestBody,
+                { timeout: 20000 },
+            ),
+            3,   // max retries
+            2000 // initial delay ms
         );
 
         const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+        console.log("🤖 Gemini raw response:", text.substring(0, 200));
 
         // Parse JSON from response
         try {
@@ -327,14 +337,82 @@ Where:
                 narrative: typeof parsed.narrative === "string" ? parsed.narrative : "AI analysis completed.",
             };
         } catch {
-            // If JSON parse fails, try to extract from text
-            console.warn("⚠️  Gemini returned non-JSON, falling back to CLEARED");
-            return {
-                status: "CLEARED",
-                riskScore: 15,
-                alerts: [],
-                narrative: "AI analysis completed but structured output was unavailable. Defaulting to low-risk assessment based on available data.",
-            };
+            // If JSON parse fails, build a data-driven narrative from Etherscan data
+            console.warn("⚠️  Gemini returned non-JSON, building data-driven fallback. Raw:", text.substring(0, 300));
+            return this._buildDataDrivenFallback(address, amount, txSummary);
         }
+    }
+
+    // ── Private: Retry helper with exponential backoff ──────────────────────
+    private async _retryWithBackoff<T>(
+        fn: () => Promise<T>,
+        maxRetries: number,
+        initialDelayMs: number,
+    ): Promise<T> {
+        let lastError: any;
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                return await fn();
+            } catch (err: any) {
+                lastError = err;
+                const status = err?.response?.status;
+                // Only retry on 429 (rate limit) or 503 (service unavailable)
+                if (attempt < maxRetries && (status === 429 || status === 503)) {
+                    const delay = initialDelayMs * Math.pow(2, attempt);
+                    console.log(`⏳ Gemini returned ${status}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})...`);
+                    await new Promise((r) => setTimeout(r, delay));
+                } else {
+                    throw err;
+                }
+            }
+        }
+        throw lastError;
+    }
+
+    // ── Private: Data-driven fallback when Gemini is unavailable ────────────
+    private _buildDataDrivenFallback(
+        address: string,
+        amount: number,
+        txSummary: AIScreeningResult["txSummary"],
+    ): { status: string; riskScore: number; alerts: string[]; narrative: string } {
+        const totalTxs = txSummary?.totalTxs ?? 0;
+        const counterparties = txSummary?.uniqueCounterparties ?? 0;
+        const protocols = txSummary?.protocols ?? [];
+        const alerts: string[] = [];
+
+        // Check for suspicious protocol interactions
+        const hasSuspicious = protocols.some((p) =>
+            p.toLowerCase().includes("tornado") || p.toLowerCase().includes("mixer")
+        );
+        const hasDeFi = protocols.some((p) =>
+            ["uniswap", "aave", "compound", "sushiswap", "1inch", "0x"].some((d) => p.toLowerCase().includes(d))
+        );
+
+        let riskScore: number;
+        let status: string;
+        let narrative: string;
+
+        if (hasSuspicious) {
+            riskScore = 72;
+            status = "HIGH_RISK";
+            alerts.push("MIXER_INTERACTION", "ENHANCED_DUE_DILIGENCE_REQUIRED");
+            narrative = `Wallet ${address.slice(0, 10)}... shows interaction with privacy-enhancing protocols (${protocols.filter(p => p.toLowerCase().includes("tornado")).join(", ")}). The address has ${totalTxs} transactions across ${counterparties} counterparties. Enhanced due diligence is recommended before proceeding with the ${amount.toLocaleString()} USDC deposit.`;
+        } else if (totalTxs === 0) {
+            riskScore = 32;
+            status = "CLEARED";
+            alerts.push("NO_TRANSACTION_HISTORY");
+            narrative = `Wallet ${address.slice(0, 10)}... has no on-chain transaction history on Ethereum mainnet. While no risk indicators were found, the lack of history warrants a moderate risk score. The ${amount.toLocaleString()} USDC deposit may proceed with standard monitoring.`;
+        } else if (hasDeFi && totalTxs > 10) {
+            riskScore = 8;
+            status = "CLEARED";
+            narrative = `Wallet ${address.slice(0, 10)}... demonstrates an established DeFi presence with ${totalTxs} transactions across ${counterparties} unique counterparties. Protocol interactions include ${protocols.slice(0, 3).join(", ")}${protocols.length > 3 ? ` and ${protocols.length - 3} more` : ""}. Active period: ${txSummary?.activePeriod ?? "unknown"}. Low risk profile — the ${amount.toLocaleString()} USDC deposit is cleared for processing.`;
+        } else {
+            riskScore = Math.min(45, Math.max(5, 50 - totalTxs));
+            status = "CLEARED";
+            if (totalTxs < 5) alerts.push("LIMITED_HISTORY");
+            narrative = `Wallet ${address.slice(0, 10)}... has ${totalTxs} transactions with ${counterparties} unique counterparties over ${txSummary?.activePeriod ?? "an unknown period"}. ${protocols.length > 0 ? `Known interactions: ${protocols.join(", ")}.` : "No known protocol interactions detected."} Risk assessment: ${riskScore < 30 ? "low" : "moderate"} — the ${amount.toLocaleString()} USDC deposit is cleared with standard compliance monitoring.`;
+        }
+
+        return { status, riskScore, alerts, narrative };
     }
 }
